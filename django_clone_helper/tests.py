@@ -25,9 +25,12 @@ def song(artist, album, db):
 
 @pytest.mark.djangp_db
 class TestSuite:
+    @classmethod
+    def check_model_count(cls, model, expected):
+        assert model.objects.count() == expected
 
     def test_clone_artist_model(self, artist):
         attrs = {'name': 'John'}
         cloned_artist = artist.clone.create_child(attrs=attrs)
-        assert Artist.objects.count() == 2
+        self.check_model_count(Artist, 2)
         assert cloned_artist.name == attrs.get('name')
