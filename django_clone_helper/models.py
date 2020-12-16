@@ -7,7 +7,16 @@ class Artist(models.Model):
     name = models.CharField(max_length=100)
 
     class clone(CloneHandler):
-        pass
+        many_to_one = [
+            {
+                'album_set': {
+                    'fk_name': 'artist',
+                    'attrs': {
+                        'title': 'cloned album title'
+                    }
+                }
+            }
+        ]
 
     def __str__(self):
         return self.name

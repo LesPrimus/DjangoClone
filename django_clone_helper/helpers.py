@@ -49,6 +49,9 @@ class CloneHandler(metaclass=CloneMeta):
                     for inst in queryset:
                         cloned_fk = self._create_clone(inst, attrs=attrs, exclude=exclude)
                         setattr(cloned_fk, fk_name, cloned)
+                        for field_name, value in attrs.items():
+                            if hasattr(cloned_fk, field_name):
+                                setattr(cloned_fk, field_name, value)
                         if commit is True:
                             cloned_fk.save()
                         cloned_fks.append(cloned_fk)
