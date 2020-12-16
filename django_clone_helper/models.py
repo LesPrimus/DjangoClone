@@ -29,6 +29,9 @@ class Song(models.Model):
     album = models.ForeignKey(Album, on_delete=models.CASCADE)
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
 
+    class clone(CloneHandler):
+        pass
+
     def __str__(self):
         return self.title
 

@@ -36,7 +36,18 @@ class TestSuite:
         assert cloned_artist.name == attrs.get('name')
 
     def test_clone_album_model(self, album):
+        artist = album.artist
         attrs = {'title': 'test title'}
         cloned_album = album.clone.create_child(attrs=attrs)
         self.check_model_count(Album, 2)
         assert cloned_album.title == attrs.get('title')
+        assert artist.album_set.count() == 2
+
+    def test_clone_song_model(self, song):
+        album, artist = song.album, song.artist
+        attrs = {'title': 'test title'}
+        cloned_song = song.clone.create_child(attrs=attrs)
+        self.check_model_count(Song, 2)
+        assert cloned_song.title == attrs.get('title')
+        assert album.song_set.count() == 2
+        assert artist.song_set.count() == 2
