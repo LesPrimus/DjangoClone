@@ -1,6 +1,19 @@
 from copy import copy
 
 
+class Param:
+    def __init__(self, name, attrs=None, exclude=None):
+        self.name = name
+        self.attrs = attrs
+        self.exclude = exclude
+
+
+class ManyToOneParam(Param):
+    def __init__(self, name, fk_name, attrs=None, exclude=None):
+        super(ManyToOneParam, self).__init__(name, attrs=attrs, exclude=exclude)
+        self.fk_name = fk_name
+
+
 class CloneMeta(type):
 
     def __get__(self, instance, owner):
@@ -37,24 +50,23 @@ class CloneHandler(metaclass=CloneMeta):
 
     def _create_many_to_one(self, cloned, commit=True, in_bulk=False):
         cloned_fks = []
-        for dict_param in self.many_to_one:
-            for k, v in dict_param.items():
-                attrs = v.get('attrs', {})
-                exclude = v.get('exclude', [])
-                fk_name = v.get('fk_name')
-                assert fk_name, 'Fk name must be explicit'
-                if hasattr(self.instance, k):
-                    related_manager = getattr(self.instance, k)
-                    queryset = related_manager.all()
-                    for inst in queryset:
-                        cloned_fk = self._create_clone(inst, attrs=attrs, exclude=exclude)
-                        setattr(cloned_fk, fk_name, cloned)
-                        for field_name, value in attrs.items():
-                            if hasattr(cloned_fk, field_name):
-                                setattr(cloned_fk, field_name, value)
-                        if commit is True:
-                            cloned_fk.save()
-                        cloned_fks.append(cloned_fk)
+        for param in self.many_to_one:
+            attrs = param.attrs
+            exclude = param.exclude
+            fk_name = param.fk_name
+            assert fk_name, 'Fk name must be explicit'
+            if hasattr(self.instance, param.name):
+                related_manager = getattr(self.instance, param.name)
+                queryset = related_manager.all()
+                for inst in queryset:
+                    cloned_fk = self._create_clone(inst, attrs=attrs, exclude=exclude)
+                    setattr(cloned_fk, fk_name, cloned)
+                    for field_name, value in attrs.items():
+                        if hasattr(cloned_fk, field_name):
+                            setattr(cloned_fk, field_name, value)
+                    if commit is True:
+                        cloned_fk.save()
+                    cloned_fks.append(cloned_fk)
         return cloned_fks
 
     def _create_many_to_many(self, cloned):

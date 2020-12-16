@@ -1,6 +1,6 @@
 from django.db import models
 
-from django_clone_helper.helpers import CloneHandler
+from django_clone_helper.helpers import CloneHandler, ManyToOneParam
 
 
 class Artist(models.Model):
@@ -8,14 +8,7 @@ class Artist(models.Model):
 
     class clone(CloneHandler):
         many_to_one = [
-            {
-                'album_set': {
-                    'fk_name': 'artist',
-                    'attrs': {
-                        'title': 'cloned album title'
-                    }
-                }
-            }
+            ManyToOneParam(name='album_set', fk_name='artist', attrs={'title': 'cloned album title'})
         ]
 
     def __str__(self):
