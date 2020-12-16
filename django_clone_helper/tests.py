@@ -34,3 +34,9 @@ class TestSuite:
         cloned_artist = artist.clone.create_child(attrs=attrs)
         self.check_model_count(Artist, 2)
         assert cloned_artist.name == attrs.get('name')
+
+    def test_clone_album_model(self, album):
+        attrs = {'title': 'test title'}
+        cloned_album = album.clone.create_child(attrs=attrs)
+        self.check_model_count(Album, 2)
+        assert cloned_album.title == attrs.get('title')

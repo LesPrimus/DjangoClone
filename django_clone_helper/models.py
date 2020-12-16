@@ -17,6 +17,9 @@ class Album(models.Model):
     title = models.CharField(max_length=100)
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
 
+    class clone(CloneHandler):
+        pass
+
     def __str__(self):
         return self.title
 
