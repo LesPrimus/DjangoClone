@@ -1,8 +1,13 @@
 from django.db import models
 
+from django_clone_helper.helpers import CloneHandler
+
 
 class Artist(models.Model):
     name = models.CharField(max_length=100)
+
+    class clone(CloneHandler):
+        pass
 
     def __str__(self):
         return self.name
