@@ -1,12 +1,27 @@
 from copy import copy
+from collections.abc import MutableMapping
 
 
-class Param:
-    # Todo subclass from collections.MutableMapping
+class Param(MutableMapping):
     def __init__(self, name, attrs=None, exclude=None):
         self.name = name
         self.attrs = attrs or {}
         self.exclude = exclude
+
+    def __getitem__(self, item):
+        return self.attrs[item]
+
+    def __setitem__(self, key, value):
+        self.attrs[key] = value
+
+    def __iter__(self):
+        return iter(self.attrs)
+
+    def __delitem__(self, key):
+        del self.attrs[key]
+
+    def __len__(self):
+        return len(self.attrs)
 
 
 class ManyToOneParam(Param):
@@ -63,7 +78,7 @@ class CloneHandler(metaclass=CloneMeta):
                 for inst in queryset:
                     cloned_fk = self._create_clone(inst, attrs=attrs, exclude=exclude)
                     setattr(cloned_fk, fk_name, cloned)
-                    for field_name, value in attrs.items():
+                    for field_name, value in param.items():
                         if hasattr(cloned_fk, field_name):
                             setattr(cloned_fk, field_name, value)
                     if commit is True:
