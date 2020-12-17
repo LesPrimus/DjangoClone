@@ -2,9 +2,10 @@ from copy import copy
 
 
 class Param:
+    # Todo subclass from collections.MutableMapping
     def __init__(self, name, attrs=None, exclude=None):
         self.name = name
-        self.attrs = attrs
+        self.attrs = attrs or {}
         self.exclude = exclude
 
 
@@ -50,7 +51,7 @@ class CloneHandler(metaclass=CloneMeta):
 
     def _create_many_to_one(self, cloned, commit=True, many_to_one=None):
         many_to_one = many_to_one or self.many_to_one
-        cloned_fks = []
+        cloned_fks = []  # todo switch to set-default dict
         for param in many_to_one:
             attrs = param.attrs
             exclude = param.exclude

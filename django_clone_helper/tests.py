@@ -1,6 +1,6 @@
 import pytest
 
-from .helpers import CloneHandler
+from .helpers import CloneHandler, ManyToOneParam
 from .models import Artist, Album, Song, Compilation
 
 
@@ -69,3 +69,17 @@ class TestHandler:
         cloned_artist = handler.create_child(commit=True, attrs={'name': 'Test Name'})
         check_model_count(Artist, 2)
         assert cloned_artist.name != artist.name
+
+    def test_clone_handler_many_to_one(self, album):
+        artist = album.artist
+        handler = CloneHandler(instance=artist, owner=artist.__class__)
+        cloned_artist = handler.create_child(commit=True, attrs={'name': 'Test Name'})
+        check_model_count(Artist, 2), check_model_count(Album, 1)
+        m2o_param = ManyToOneParam(
+            name='album_set',
+            fk_name='artist',
+        )
+        cloned_m2o = handler._create_many_to_one(cloned_artist, commit=True, many_to_one=[m2o_param])
+        check_model_count(Album, 2)
+        assert artist.album_set.count() == 1
+        assert cloned_artist.album_set.count() == 1
