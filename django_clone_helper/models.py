@@ -51,6 +51,7 @@ class Compilation(models.Model):
 class Instrument(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4)
     name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class clone(CloneHandler):
         pass

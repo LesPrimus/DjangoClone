@@ -35,22 +35,22 @@ def check_model_count(model, expected):
 
 
 @pytest.mark.django_db
-class TestModel:
+class TestSuite:
 
-    def test_clone_artist_model(self, artist):
+    def test_clone_model(self, artist):
         attrs = {'name': 'John'}
         cloned_artist = artist.clone.create_child(attrs=attrs)
         check_model_count(Artist, 2)
         assert cloned_artist.name == attrs.get('name')
         assert cloned_artist.album_set.count() == 0
 
-    def test_clone_artist_many_to_one(self, album):
+    def test_clone_model_with_many_to_one_overriding_fields_on_model(self, album):
         artist = album.artist
         cloned_artist = artist.clone.create_child()
         assert cloned_artist.album_set.count() == 1
         assert cloned_artist.album_set.get().title == 'cloned album title'
 
-    def test_clone_album_model(self, album):
+    def test_clone_model_with_many_to_one_overriding_fields_params(self, album):
         artist = album.artist
         attrs = {'title': 'test title'}
         cloned_album = album.clone.create_child(attrs=attrs)
@@ -58,7 +58,7 @@ class TestModel:
         assert cloned_album.title == attrs.get('title')
         assert artist.album_set.count() == 2
 
-    def test_clone_song_model(self, song):
+    def test_clone_model_with_more_fks(self, song):
         album, artist = song.album, song.artist
         attrs = {'title': 'test title'}
         cloned_song = song.clone.create_child(attrs=attrs)
@@ -70,6 +70,10 @@ class TestModel:
     def test_cloning_model_with_custom_id(self, instrument):
         cloned_instrument = instrument.clone.create_child()
         assert instrument.id != cloned_instrument.id
+
+    def test_cloning_with_auto_now_field(self, instrument):
+        cloned_instrument = instrument.clone.create_child()
+        assert cloned_instrument.created_at != instrument.created_at
 
 
 @pytest.mark.django_db
