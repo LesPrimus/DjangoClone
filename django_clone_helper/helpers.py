@@ -48,9 +48,10 @@ class CloneHandler(metaclass=CloneMeta):
     def _pre_create_child(self, instance, attrs=None, exclude=None):
         return self._create_clone(instance, attrs=attrs, exclude=exclude)
 
-    def _create_many_to_one(self, cloned, commit=True, in_bulk=False):
+    def _create_many_to_one(self, cloned, commit=True, many_to_one=None):
+        many_to_one = many_to_one or self.many_to_one
         cloned_fks = []
-        for param in self.many_to_one:
+        for param in many_to_one:
             attrs = param.attrs
             exclude = param.exclude
             fk_name = param.fk_name

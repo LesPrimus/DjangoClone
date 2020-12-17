@@ -1,5 +1,6 @@
 import pytest
 
+from .helpers import CloneHandler
 from .models import Artist, Album, Song, Compilation
 
 
@@ -23,16 +24,17 @@ def song(artist, album, db):
     return song
 
 
+def check_model_count(model, expected):
+    assert model.objects.count() == expected
+
+
 @pytest.mark.django_db
-class TestSuite:
-    @classmethod
-    def check_model_count(cls, model, expected):
-        assert model.objects.count() == expected
+class TestModel:
 
     def test_clone_artist_model(self, artist):
         attrs = {'name': 'John'}
         cloned_artist = artist.clone.create_child(attrs=attrs)
-        self.check_model_count(Artist, 2)
+        check_model_count(Artist, 2)
         assert cloned_artist.name == attrs.get('name')
         assert cloned_artist.album_set.count() == 0
 
@@ -46,7 +48,7 @@ class TestSuite:
         artist = album.artist
         attrs = {'title': 'test title'}
         cloned_album = album.clone.create_child(attrs=attrs)
-        self.check_model_count(Album, 2)
+        check_model_count(Album, 2)
         assert cloned_album.title == attrs.get('title')
         assert artist.album_set.count() == 2
 
@@ -54,7 +56,16 @@ class TestSuite:
         album, artist = song.album, song.artist
         attrs = {'title': 'test title'}
         cloned_song = song.clone.create_child(attrs=attrs)
-        self.check_model_count(Song, 2)
+        check_model_count(Song, 2)
         assert cloned_song.title == attrs.get('title')
         assert album.song_set.count() == 2
         assert artist.song_set.count() == 2
+
+
+@pytest.mark.django_db
+class TestHandler:
+    def test_clone_handler_decoupled_from_model(self, artist):
+        handler = CloneHandler(instance=artist, owner=artist.__class__)
+        cloned_artist = handler.create_child(commit=True, attrs={'name': 'Test Name'})
+        check_model_count(Artist, 2)
+        assert cloned_artist.name != artist.name
