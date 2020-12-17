@@ -1,7 +1,7 @@
 import pytest
 
 from .helpers import CloneHandler, ManyToOneParam
-from .models import Artist, Album, Song, Compilation
+from .models import Artist, Album, Song, Compilation, Instrument
 
 
 @pytest.fixture
@@ -22,6 +22,12 @@ def song(artist, album, db):
         title='My name is mud', album=album, artist=artist
     )
     return song
+
+
+@pytest.fixture
+def instrument():
+    instrument = Instrument.objects.create(name='bass')
+    return instrument
 
 
 def check_model_count(model, expected):
@@ -60,6 +66,10 @@ class TestModel:
         assert cloned_song.title == attrs.get('title')
         assert album.song_set.count() == 2
         assert artist.song_set.count() == 2
+
+    def test_cloning_model_with_custom_id(self, instrument):
+        cloned_instrument = instrument.clone.create_child()
+        assert instrument.id != cloned_instrument.id
 
 
 @pytest.mark.django_db

@@ -52,5 +52,8 @@ class Instrument(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4)
     name = models.CharField(max_length=100)
 
+    class clone(CloneHandler):
+        pass
+
     def __str__(self):
         return self.name
