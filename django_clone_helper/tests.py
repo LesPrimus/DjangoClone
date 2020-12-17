@@ -23,7 +23,7 @@ def song(artist, album, db):
     return song
 
 
-@pytest.mark.djangp_db
+@pytest.mark.django_db
 class TestSuite:
     @classmethod
     def check_model_count(cls, model, expected):
