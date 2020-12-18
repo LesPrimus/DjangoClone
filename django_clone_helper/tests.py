@@ -108,14 +108,8 @@ class TestHandler:
         assert artist.album_set.count() == 1
         assert cloned_artist.album_set.count() == 1
 
-
-# @pytest.mark.django_db
-# def test_some(instrument):
-#     from .utils import generate_unique
-#     fields = [
-#         field for field in instrument._meta.get_fields()
-#         if field.concrete and field.unique and not field.primary_key
-#     ]
-#     value = generate_unique(instrument, instrument._meta.get_field('serial_number'))
-#     print(value)
-#     assert 0
+    def test_clone_handler_with_unique_fields(self, instrument):
+        handler = CloneHandler(instance=instrument, owner=instrument.__class__)
+        cloned_instrument = handler.create_child(commit=True)
+        check_model_count(Instrument, 2)
+        assert cloned_instrument.serial_number == f'{instrument.serial_number}{1}'
