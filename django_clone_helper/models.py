@@ -2,7 +2,8 @@ from uuid import uuid4
 
 from django.db import models
 
-from django_clone_helper.helpers import CloneHandler, ManyToOneParam
+from django_clone_helper.helpers import CloneHandler
+from django_clone_helper.utils import ManyToOneParam
 
 
 class Artist(models.Model):

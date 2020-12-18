@@ -1,33 +1,6 @@
 from copy import copy
-from collections.abc import MutableMapping
 
-
-class Param(MutableMapping):
-    def __init__(self, name, attrs=None, exclude=None):
-        self.name = name
-        self.attrs = attrs or {}
-        self.exclude = exclude
-
-    def __getitem__(self, item):
-        return self.attrs[item]
-
-    def __setitem__(self, key, value):
-        self.attrs[key] = value
-
-    def __iter__(self):
-        return iter(self.attrs)
-
-    def __delitem__(self, key):
-        del self.attrs[key]
-
-    def __len__(self):
-        return len(self.attrs)
-
-
-class ManyToOneParam(Param):
-    def __init__(self, name, fk_name, attrs=None, exclude=None):
-        super(ManyToOneParam, self).__init__(name, attrs=attrs, exclude=exclude)
-        self.fk_name = fk_name
+from django_clone_helper.utils import generate_unique
 
 
 class CloneMeta(type):
@@ -49,12 +22,13 @@ class CloneHandler(metaclass=CloneMeta):
     @classmethod
     def _set_unique_constrain(cls, instance, prefix):
         fields = [
-            field.name for field in instance._meta.get_fields()
+            field for field in instance._meta.get_fields()
             if field.concrete and field.unique and not field.primary_key
         ]
         for field in fields:
-            if hasattr(instance, field):
-                setattr(instance, field, new_value := getattr(instance, field) + prefix)
+            if hasattr(instance, field.name):
+                # Todo add a callable to model.clone settings
+                setattr(instance, field.name, new_value := generate_unique(instance, field))
         return instance
 
     @classmethod

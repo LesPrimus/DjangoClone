@@ -1,9 +1,7 @@
-from uuid import uuid4
-
 import pytest
-from django.db import IntegrityError
 
-from .helpers import CloneHandler, ManyToOneParam
+from .helpers import CloneHandler
+from .utils import ManyToOneParam
 from .models import Artist, Album, Song, Compilation, Instrument
 
 
@@ -80,7 +78,9 @@ class TestSuite:
 
     def test_cloning_with_unique_field(self, instrument):
         cloned_instr = instrument.clone.create_child()
-        assert cloned_instr.serial_number == instrument.serial_number + cloned_instr.clone.unique_field_prefix
+        cloned_instr_1 = instrument.clone.create_child()
+        assert cloned_instr.serial_number == f'{instrument.serial_number}{1}'
+        assert cloned_instr_1.serial_number == f'{instrument.serial_number}{2}'
 
     def test_cloning_with_constrains(self):
         pass
@@ -107,3 +107,15 @@ class TestHandler:
         check_model_count(Album, 2)
         assert artist.album_set.count() == 1
         assert cloned_artist.album_set.count() == 1
+
+
+# @pytest.mark.django_db
+# def test_some(instrument):
+#     from .utils import generate_unique
+#     fields = [
+#         field for field in instrument._meta.get_fields()
+#         if field.concrete and field.unique and not field.primary_key
+#     ]
+#     value = generate_unique(instrument, instrument._meta.get_field('serial_number'))
+#     print(value)
+#     assert 0
