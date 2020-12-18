@@ -40,18 +40,30 @@ class CloneHandler(metaclass=CloneMeta):
     exclude = []
     many_to_one = []
     many_to_many = []
+    unique_field_prefix = None
 
     def __init__(self, instance, owner):
         self.instance = instance
         self.owner = owner
 
     @classmethod
+    def _set_unique_constrain(cls, instance, prefix):
+        fields = [
+            field.name for field in instance._meta.get_fields()
+            if field.concrete and field.unique and not field.primary_key
+        ]
+        for field in fields:
+            if hasattr(instance, field):
+                setattr(instance, field, new_value := getattr(instance, field) + prefix)
+        return instance
+
+    @classmethod
     def _create_clone(cls, instance, attrs=None, exclude=None):
         attrs = attrs or {}
         exclude = exclude or []
+        assert not any([k in exclude for k in attrs.keys()])
         cloned = copy(instance)
         cloned.pk = None
-        assert not any([k in exclude for k in attrs.keys()])
         for k, v in attrs.items():
             if hasattr(instance, k):
                 setattr(cloned, k, v() if callable(v) else v)
@@ -59,6 +71,7 @@ class CloneHandler(metaclass=CloneMeta):
         for item in exclude:
             field = instance._meta.get_field(item)
             setattr(cloned, field.attname, field.get_default())
+        cls._set_unique_constrain(cloned, prefix=cls.unique_field_prefix)
         return cloned
 
     def _pre_create_child(self, instance, attrs=None, exclude=None):

@@ -1,4 +1,7 @@
+from uuid import uuid4
+
 import pytest
+from django.db import IntegrityError
 
 from .helpers import CloneHandler, ManyToOneParam
 from .models import Artist, Album, Song, Compilation, Instrument
@@ -26,7 +29,7 @@ def song(artist, album, db):
 
 @pytest.fixture
 def instrument():
-    instrument = Instrument.objects.create(name='bass')
+    instrument = Instrument.objects.create(name='bass', serial_number='1234ABC')
     return instrument
 
 
@@ -74,6 +77,13 @@ class TestSuite:
     def test_cloning_with_auto_now_field(self, instrument):
         cloned_instrument = instrument.clone.create_child()
         assert cloned_instrument.created_at != instrument.created_at
+
+    def test_cloning_with_unique_field(self, instrument):
+        cloned_instr = instrument.clone.create_child()
+        assert cloned_instr.serial_number == instrument.serial_number + cloned_instr.clone.unique_field_prefix
+
+    def test_cloning_with_constrains(self):
+        pass
 
 
 @pytest.mark.django_db
