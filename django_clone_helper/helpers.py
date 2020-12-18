@@ -21,6 +21,14 @@ class CloneHandler(metaclass=CloneMeta):
         self.owner = owner
 
     @classmethod
+    def _pre_save_validation(cls, instance):
+        try:
+            instance.full_clean()
+        except Exception as e:
+            raise e
+        return instance
+
+    @classmethod
     def _set_unique_constrain(cls, instance, prefix):
         fields = [
             field for field in instance._meta.get_fields()
@@ -70,24 +78,56 @@ class CloneHandler(metaclass=CloneMeta):
                         if hasattr(cloned_fk, field_name):
                             setattr(cloned_fk, field_name, value)
                     if commit is True:
+                        self._pre_save_validation(cloned_fk)
                         cloned_fk.save()
                     cloned_fks.append(cloned_fk)
         return cloned_fks
 
-    def _create_many_to_many(self, cloned):
+    def _create_many_to_many(self, cloned, commit=True, many_to_many=None):
         pass
 
-    def create_child(self, commit=True, attrs=None, exclude=None):
+    def _create_one_to_one(self, cloned, commit=True, one_to_one=None):
+        one_to_one = one_to_one or self.one_to_one
+        result = []
+        for param in one_to_one:
+            attrs = param.attrs
+            exclude = param.exclude
+            o2o_name = param.o2o_name
+            assert o2o_name, 'One-to-one name must be explicit'
+            if hasattr(self.instance, param.name):
+                original_o2o = getattr(self.instance, param.name)
+                cloned_o2o = self._create_clone(original_o2o, attrs=attrs, exclude=exclude)
+                setattr(cloned_o2o, o2o_name, cloned)
+                for field_name, value in param.items():
+                    if hasattr(cloned_o2o, field_name):
+                        setattr(cloned_o2o, field_name, value)
+                if commit is True:
+                    self._pre_save_validation(cloned_o2o)
+                    cloned_o2o.save()
+                result.append(cloned_o2o)
+        return result
+
+    def create_child(
+            self,
+            commit=True,
+            attrs=None,
+            exclude=None,
+            many_to_one=None,
+            many_to_many=None,
+            one_to_one=None
+    ):
+        many_to_one = many_to_one or self.many_to_one
+        many_to_many = many_to_many or self.many_to_many
+        one_to_one = one_to_one or self.one_to_one
         _pre_create_child = getattr(self.instance, '_pre_create_child', self._pre_create_child)
         cloned = _pre_create_child(self.instance, attrs, exclude=exclude or self.exclude)
         if commit is True:
-            try:
-                cloned.full_clean()
-            except Exception as e:
-                raise e
+            self._pre_save_validation(cloned)
             cloned.save()
-            if self.many_to_one:
-                self._create_many_to_one(cloned)
-            if self.many_to_many:
-                self._create_many_to_many(cloned)
+            if many_to_one:
+                self._create_many_to_one(cloned, many_to_one=many_to_one)
+            if many_to_many:
+                self._create_many_to_many(cloned, many_to_many=many_to_many)
+            if one_to_one:
+                self._create_one_to_one(cloned, one_to_one=one_to_one)
         return cloned
