@@ -1,4 +1,7 @@
+from uuid import uuid4
+
 import pytest
+from django.core.exceptions import ValidationError
 
 from .helpers import CloneHandler
 from .utils import ManyToOneParam
@@ -69,21 +72,25 @@ class TestSuite:
         assert artist.song_set.count() == 2
 
     def test_cloning_model_with_custom_id(self, instrument):
-        cloned_instrument = instrument.clone.create_child()
+        cloned_instrument = instrument.clone.create_child(attrs={'id': uuid4()})
         assert instrument.id != cloned_instrument.id
 
     def test_cloning_with_auto_now_field(self, instrument):
-        cloned_instrument = instrument.clone.create_child()
+        cloned_instrument = instrument.clone.create_child(attrs={'id': uuid4()})
         assert cloned_instrument.created_at != instrument.created_at
 
     def test_cloning_with_unique_field(self, instrument):
-        cloned_instr = instrument.clone.create_child()
-        cloned_instr_1 = instrument.clone.create_child()
+        cloned_instr = instrument.clone.create_child(attrs={'id': uuid4()})
+        cloned_instr_1 = instrument.clone.create_child(attrs={'id': uuid4()})
         assert cloned_instr.serial_number == f'{instrument.serial_number}{1}'
         assert cloned_instr_1.serial_number == f'{instrument.serial_number}{2}'
 
     def test_cloning_with_constrains(self):
         pass
+
+    def test_cloning_with_full_clean(self, artist):
+        with pytest.raises(ValidationError):
+            cloned_artist = artist.clone.create_child(exclude=['name'])
 
 
 @pytest.mark.django_db
@@ -110,6 +117,6 @@ class TestHandler:
 
     def test_clone_handler_with_unique_fields(self, instrument):
         handler = CloneHandler(instance=instrument, owner=instrument.__class__)
-        cloned_instrument = handler.create_child(commit=True)
+        cloned_instrument = handler.create_child(commit=True, attrs={'id': uuid4()})
         check_model_count(Instrument, 2)
         assert cloned_instrument.serial_number == f'{instrument.serial_number}{1}'

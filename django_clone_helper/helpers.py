@@ -76,10 +76,14 @@ class CloneHandler(metaclass=CloneMeta):
     def _create_many_to_many(self, cloned):
         pass
 
-    def create_child(self, commit=True, attrs=None):
+    def create_child(self, commit=True, attrs=None, exclude=None):
         _pre_create_child = getattr(self.instance, '_pre_create_child', self._pre_create_child)
-        cloned = _pre_create_child(self.instance, attrs, exclude=self.exclude)
+        cloned = _pre_create_child(self.instance, attrs, exclude=exclude or self.exclude)
         if commit is True:
+            try:
+                cloned.full_clean()
+            except Exception as e:
+                raise e
             cloned.save()
             if self.many_to_one:
                 self._create_many_to_one(cloned)

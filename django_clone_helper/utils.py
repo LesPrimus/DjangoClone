@@ -36,7 +36,6 @@ def generate_unique(instance: Model, field):
     qs = Klass._default_manager
     value = getattr(instance, field.name)
     lookup = {field.name: value}
-    print(lookup)
     prefix = 1
     while qs.filter(**lookup).exists():
         lookup[field.name] = value + str(prefix)
