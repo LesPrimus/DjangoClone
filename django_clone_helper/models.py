@@ -18,6 +18,13 @@ class Artist(models.Model):
         return self.name
 
 
+class Passport(models.Model):
+    owner = models.OneToOneField(Artist, primary_key=True, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.__class__.__name__}-{self.owner.name}'
+
+
 class Album(models.Model):
     title = models.CharField(max_length=100)
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE)

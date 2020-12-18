@@ -92,6 +92,9 @@ class TestSuite:
         with pytest.raises(ValidationError):
             cloned_artist = artist.clone.create_child(exclude=['name'])
 
+    def test_cloning_with_one_to_one(self, artist):
+        pass
+
 
 @pytest.mark.django_db
 class TestHandler:

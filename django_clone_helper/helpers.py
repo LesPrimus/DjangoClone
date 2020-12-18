@@ -13,6 +13,7 @@ class CloneHandler(metaclass=CloneMeta):
     exclude = []
     many_to_one = []
     many_to_many = []
+    one_to_one = []
     unique_field_prefix = None
 
     def __init__(self, instance, owner):
