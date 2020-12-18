@@ -3,7 +3,10 @@ from uuid import uuid4
 from django.db import models
 
 from django_clone_helper.helpers import CloneHandler
-from django_clone_helper.utils import ManyToOneParam
+from django_clone_helper.utils import (
+    ManyToOneParam,
+    OneToOneParam
+)
 
 
 class Artist(models.Model):
@@ -12,6 +15,9 @@ class Artist(models.Model):
     class clone(CloneHandler):
         many_to_one = [
             ManyToOneParam(name='album_set', fk_name='artist', attrs={'title': 'cloned album title'})
+        ]
+        one_to_one = [
+            OneToOneParam(name='passport', o2o_name='owner')
         ]
 
     def __str__(self):
