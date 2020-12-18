@@ -5,13 +5,19 @@ from django.core.exceptions import ValidationError
 
 from .helpers import CloneHandler
 from .utils import ManyToOneParam
-from .models import Artist, Album, Song, Compilation, Instrument
+from .models import Artist, Album, Song, Compilation, Instrument, Passport
 
 
 @pytest.fixture
 def artist(db):
     artist = Artist.objects.create(name='Les')
     return artist
+
+
+@pytest.fixture
+def passport(db, artist):
+    passport = Passport.objects.create(owner=artist)
+    return passport
 
 
 @pytest.fixture
@@ -92,8 +98,11 @@ class TestSuite:
         with pytest.raises(ValidationError):
             cloned_artist = artist.clone.create_child(exclude=['name'])
 
-    def test_cloning_with_one_to_one(self, artist):
-        pass
+    def test_cloning_with_one_to_one(self, passport):
+        artist = passport.owner
+        cloned_artist = artist.clone.create_child()
+        check_model_count(Artist, 2)
+        check_model_count(Passport, 2)
 
 
 @pytest.mark.django_db

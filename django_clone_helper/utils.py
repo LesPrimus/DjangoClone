@@ -31,6 +31,12 @@ class ManyToOneParam(Param):
         self.fk_name = fk_name
 
 
+class OneToOneParam(Param):
+    def __init__(self, name, o2o_name, attrs=None, exclude=None):
+        super(OneToOneParam, self).__init__(name, attrs=attrs, exclude=exclude)
+        self.o2o_name = o2o_name
+
+
 def generate_unique(instance: Model, field):
     Klass = instance.__class__
     qs = Klass._default_manager
