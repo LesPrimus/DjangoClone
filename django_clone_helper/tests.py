@@ -4,7 +4,7 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from .helpers import CloneHandler
-from .utils import ManyToOneParam
+from .utils import ManyToOneParam, is_iterable
 from .models import Artist, Album, Song, Compilation, Instrument, Passport
 
 

@@ -37,6 +37,14 @@ class OneToOneParam(Param):
         self.o2o_name = o2o_name
 
 
+def is_iterable(obj):
+    try:
+        iter(obj)
+    except TypeError:
+        return False
+    return True
+
+
 def generate_unique(instance: Model, field):
     Klass = instance.__class__
     qs = Klass._default_manager

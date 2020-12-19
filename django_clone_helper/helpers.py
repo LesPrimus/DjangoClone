@@ -60,20 +60,20 @@ class CloneHandler(metaclass=CloneMeta):
     def _pre_create_child(self, instance, attrs=None, exclude=None):
         return self._create_clone(instance, attrs=attrs, exclude=exclude)
 
+    def _pre_create_relation(self, cloned, commit=True, param_inst=None):
+        pass
+
     def _create_many_to_one(self, cloned, commit=True, many_to_one=None):
         many_to_one = many_to_one or self.many_to_one
         cloned_fks = []  # todo switch to set-default dict
         for param in many_to_one:
-            attrs = param.attrs
-            exclude = param.exclude
-            fk_name = param.fk_name
-            assert fk_name, 'Fk name must be explicit'
+            assert param.fk_name, 'Fk name must be explicit'
             if hasattr(self.instance, param.name):
                 related_manager = getattr(self.instance, param.name)
                 queryset = related_manager.all()
                 for inst in queryset:
-                    cloned_fk = self._create_clone(inst, attrs=attrs, exclude=exclude)
-                    setattr(cloned_fk, fk_name, cloned)
+                    cloned_fk = self._create_clone(inst, attrs=param.attrs, exclude=param.exclude)
+                    setattr(cloned_fk, param.fk_name, cloned)
                     for field_name, value in param.items():
                         if hasattr(cloned_fk, field_name):
                             setattr(cloned_fk, field_name, value)
@@ -90,14 +90,11 @@ class CloneHandler(metaclass=CloneMeta):
         one_to_one = one_to_one or self.one_to_one
         result = []
         for param in one_to_one:
-            attrs = param.attrs
-            exclude = param.exclude
-            o2o_name = param.o2o_name
-            assert o2o_name, 'One-to-one name must be explicit'
+            assert param.o2o_name, 'One-to-one name must be explicit'
             if hasattr(self.instance, param.name):
                 original_o2o = getattr(self.instance, param.name)
-                cloned_o2o = self._create_clone(original_o2o, attrs=attrs, exclude=exclude)
-                setattr(cloned_o2o, o2o_name, cloned)
+                cloned_o2o = self._create_clone(original_o2o, attrs=param.attrs, exclude=param.exclude)
+                setattr(cloned_o2o, param.o2o_name, cloned)
                 for field_name, value in param.items():
                     if hasattr(cloned_o2o, field_name):
                         setattr(cloned_o2o, field_name, value)
