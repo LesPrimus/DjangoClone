@@ -25,16 +25,18 @@ class Param(MutableMapping):
         return len(self.attrs)
 
 
-class ManyToOneParam(Param):
+class ReverseParam(Param):
     def __init__(self, name, reverse_name, attrs=None, exclude=None):
-        super(ManyToOneParam, self).__init__(name, attrs=attrs, exclude=exclude)
+        super(ReverseParam, self).__init__(name, attrs=attrs, exclude=exclude)
         self.reverse_name = reverse_name
 
 
-class OneToOneParam(Param):
-    def __init__(self, name, reverse_name, attrs=None, exclude=None):
-        super(OneToOneParam, self).__init__(name, attrs=attrs, exclude=exclude)
-        self.reverse_name = reverse_name
+class ManyToOneParam(ReverseParam):
+    pass
+
+
+class OneToOneParam(ReverseParam):
+    pass
 
 
 def is_iterable(obj):

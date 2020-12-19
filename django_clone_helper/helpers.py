@@ -37,7 +37,7 @@ class CloneHandler(metaclass=CloneMeta):
         for field in fields:
             if hasattr(instance, field.name):
                 # Todo add a callable to model.clone settings
-                setattr(instance, field.name, new_value := generate_unique(instance, field))
+                setattr(instance, field.name, generate_unique(instance, field))
         return instance
 
     @classmethod
@@ -69,7 +69,7 @@ class CloneHandler(metaclass=CloneMeta):
             for field_name, value in param.items():
                 if hasattr(cloned_inst, field_name):
                     setattr(cloned_inst, field_name, value)
-            cloned.append(cloned_inst)
+            cloned_relations.append(cloned_inst)
         return cloned_relations
 
     def _pre_create_relation(self, cloned, commit=True, param_inst=None):
@@ -80,20 +80,11 @@ class CloneHandler(metaclass=CloneMeta):
                 related_relation = getattr(self.instance, param.name)
                 if hasattr(related_relation, 'all'):
                     queryset = related_relation.all()
-                    for inst in queryset:
-                        cloned_inst = self._create_clone(inst, attrs=param.attrs, exclude=param.exclude)
-                        setattr(cloned_inst, param.reverse_name, cloned)
-                        for field_name, value in param.items():
-                            if hasattr(cloned_inst, field_name):
-                                setattr(cloned_inst, field_name, value)
-                        result.append(cloned_inst)
+                    cloned_relations = self._clone_relations(cloned, queryset, param=param)
+                    result.extend(cloned_relations)
                 else:
-                    cloned_relation = self._create_clone(related_relation, attrs=param.attrs, exclude=param.exclude)
-                    setattr(cloned_relation, param.reverse_name, cloned)
-                    for field_name, value in param.items():
-                        if hasattr(cloned_relation, field_name):
-                            setattr(cloned_relation, field_name, value)
-                    result.append(cloned_relation)
+                    cloned_relation = self._clone_relations(cloned, related_relation, param)
+                    result.extend(cloned_relation)
         if commit is True:
             for inst in result:
                 self._pre_save_validation(inst)
