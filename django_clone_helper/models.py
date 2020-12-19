@@ -14,10 +14,10 @@ class Artist(models.Model):
 
     class clone(CloneHandler):
         many_to_one = [
-            ManyToOneParam(name='album_set', fk_name='artist', attrs={'title': 'cloned album title'})
+            ManyToOneParam(name='album_set', reverse_name='artist', attrs={'title': 'cloned album title'})
         ]
         one_to_one = [
-            OneToOneParam(name='passport', o2o_name='owner')
+            OneToOneParam(name='passport', reverse_name='owner')
         ]
 
     def __str__(self):

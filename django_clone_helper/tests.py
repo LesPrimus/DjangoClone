@@ -120,7 +120,7 @@ class TestHandler:
         check_model_count(Artist, 2), check_model_count(Album, 1)
         m2o_param = ManyToOneParam(
             name='album_set',
-            fk_name='artist',
+            reverse_name='artist',
         )
         cloned_m2o = handler._create_many_to_one(cloned_artist, commit=True, many_to_one=[m2o_param])
         check_model_count(Album, 2)

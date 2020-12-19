@@ -26,15 +26,15 @@ class Param(MutableMapping):
 
 
 class ManyToOneParam(Param):
-    def __init__(self, name, fk_name, attrs=None, exclude=None):
+    def __init__(self, name, reverse_name, attrs=None, exclude=None):
         super(ManyToOneParam, self).__init__(name, attrs=attrs, exclude=exclude)
-        self.fk_name = fk_name
+        self.reverse_name = reverse_name
 
 
 class OneToOneParam(Param):
-    def __init__(self, name, o2o_name, attrs=None, exclude=None):
+    def __init__(self, name, reverse_name, attrs=None, exclude=None):
         super(OneToOneParam, self).__init__(name, attrs=attrs, exclude=exclude)
-        self.o2o_name = o2o_name
+        self.reverse_name = reverse_name
 
 
 def is_iterable(obj):
