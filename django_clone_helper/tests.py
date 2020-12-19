@@ -54,6 +54,25 @@ class TestSuite:
         assert cloned_artist.name == attrs.get('name')
         assert cloned_artist.album_set.count() == 0
 
+    def test_clone_with_multi_m2o_params(self, album, song):
+        artist = album.artist
+        assert artist == song.artist
+        check_model_count(Artist, 1)
+        check_model_count(Album, 1)
+        check_model_count(Song, 1)
+
+        cloned_artist = artist.clone.create_child()
+        check_model_count(Artist, 2)
+        check_model_count(Album, 2)
+        check_model_count(Song, 2)
+
+        cloned_album = cloned_artist.album_set.get()
+        assert cloned_album.artist == cloned_artist
+        assert cloned_album.title == 'cloned album title'
+        cloned_song = cloned_artist.song_set.get()
+        assert cloned_song.artist == cloned_artist
+        assert cloned_song.title == 'cloned song title'
+
     def test_clone_model_with_many_to_one_overriding_fields_on_model(self, album):
         artist = album.artist
         cloned_artist = artist.clone.create_child()
@@ -74,6 +93,8 @@ class TestSuite:
         cloned_song = song.clone.create_child(attrs=attrs)
         check_model_count(Song, 2)
         assert cloned_song.title == attrs.get('title')
+        assert cloned_song.artist == artist
+        assert cloned_song.album == album
         assert album.song_set.count() == 2
         assert artist.song_set.count() == 2
 

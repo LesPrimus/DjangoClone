@@ -14,7 +14,8 @@ class Artist(models.Model):
 
     class clone(CloneHandler):
         many_to_one = [
-            ManyToOneParam(name='album_set', reverse_name='artist', attrs={'title': 'cloned album title'})
+            ManyToOneParam(name='album_set', reverse_name='artist', attrs={'title': 'cloned album title'}),
+            ManyToOneParam(name='song_set', reverse_name='artist', attrs={'title': 'cloned song title'}),
         ]
         one_to_one = [
             OneToOneParam(name='passport', reverse_name='owner')
