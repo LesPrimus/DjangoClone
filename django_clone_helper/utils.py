@@ -35,6 +35,10 @@ class ManyToOneParam(ReverseParam):
     pass
 
 
+class OneToManyParam(ReverseParam):
+    pass
+
+
 class OneToOneParam(ReverseParam):
     pass
 

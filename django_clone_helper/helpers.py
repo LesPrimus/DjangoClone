@@ -1,6 +1,6 @@
 from copy import copy
 
-from django_clone_helper.utils import generate_unique, is_iterable
+from django_clone_helper.utils import generate_unique
 
 
 class CloneMeta(type):
@@ -12,6 +12,7 @@ class CloneMeta(type):
 class CloneHandler(metaclass=CloneMeta):
     exclude = []
     many_to_one = []
+    one_to_many = []
     many_to_many = []
     one_to_one = []
     unique_field_prefix = None
@@ -60,46 +61,60 @@ class CloneHandler(metaclass=CloneMeta):
     def _pre_create_child(self, instance, attrs=None, exclude=None):
         return self._create_clone(instance, attrs=attrs, exclude=exclude)
 
-    def _clone_relations(self, cloned, instance, param):
-        instance = instance if is_iterable(instance) else [instance]
-        cloned_relations = []
-        for inst in instance:
-            cloned_inst = self._create_clone(inst, attrs=param.attrs, exclude=param.exclude)
-            setattr(cloned_inst, param.reverse_name, cloned)
-            for field_name, value in param.items():
-                if hasattr(cloned_inst, field_name):
-                    setattr(cloned_inst, field_name, value)
-            cloned_relations.append(cloned_inst)
-        return cloned_relations
-
-    def _pre_create_relation(self, cloned, commit=True, param_inst=None):
+    def _pre_create_many_to_one(self, cloned, many_to_one, commit=True):
         result = []
-        for param in param_inst:
+        for param in many_to_one:
             assert param.reverse_name
             if hasattr(self.instance, param.name):
-                related_relation = getattr(self.instance, param.name)
-                if hasattr(related_relation, 'all'):
-                    queryset = related_relation.all()
-                    cloned_relations = self._clone_relations(cloned, queryset, param=param)
-                    result.extend(cloned_relations)
-                else:
-                    cloned_relation = self._clone_relations(cloned, related_relation, param)
-                    result.extend(cloned_relation)
-        if commit is True:
-            for inst in result:
-                self._pre_save_validation(inst)
-                inst.save()
+                m2o_manager = getattr(self.instance, param.name)
+                queyset = m2o_manager.all()
+                for inst in queyset:
+                    cloned_inst = self._create_clone(inst, attrs=param.attrs, exclude=param.exclude)
+                    setattr(cloned_inst, param.reverse_name, cloned)
+                    if commit is True:
+                        cloned_inst.save()
+                    result.append(cloned)
         return result
 
-    def _create_many_to_one(self, cloned, commit=True, many_to_one=None):
-        cloned_fks = self._pre_create_relation(cloned, commit=commit, param_inst=many_to_one)
+    def _pre_create_one_to_many(self, cloned, one_to_many, commit=True):
+        result = []
+        for param in one_to_many:
+            assert param.reverse_name
+            if hasattr(self.instance, param.name):
+                o2m = getattr(self.instance, param.name)
+                cloned_o2m = self._create_clone(o2m, attrs=param.attrs, exclude=param.exclude)
+                if commit is True:
+                    cloned_o2m.save()
+                    getattr(cloned_o2m, param.reverse_name).add(cloned)
+                result.append(cloned_o2m)
+        return result
+
+    def _pre_create_one_to_one(self, cloned, one_to_one, commit=True):
+        result = []
+        for param in one_to_one:
+            assert param.reverse_name
+            if hasattr(self.instance, param.name):
+                o2o = getattr(self.instance, param.name)
+                cloned_o2o = self._create_clone(o2o, attrs=param.attrs, exclude=param.exclude)
+                setattr(cloned_o2o, param.reverse_name, cloned)
+                if commit is True:
+                    cloned_o2o.save()
+                    result.append(cloned_o2o)
+        return result
+
+    def _create_many_to_one(self, cloned, many_to_one, commit=True):
+        cloned_fks = self._pre_create_many_to_one(cloned, commit=commit, many_to_one=many_to_one)
+        return cloned_fks
+
+    def _create_one_to_many(self, cloned, one_to_many, commit=True):
+        cloned_fks = self._pre_create_one_to_many(cloned, one_to_many=one_to_many, commit=commit)
         return cloned_fks
 
     def _create_many_to_many(self, cloned, commit=True, many_to_many=None):
         pass
 
-    def _create_one_to_one(self, cloned, commit=True, one_to_one=None):
-        one_to_one = self._pre_create_relation(cloned, commit=commit, param_inst=one_to_one)
+    def _create_one_to_one(self, cloned, one_to_one, commit=True):
+        one_to_one = self._pre_create_one_to_one(cloned, one_to_one=one_to_one, commit=commit)
         return one_to_one
 
     def create_child(
@@ -108,10 +123,12 @@ class CloneHandler(metaclass=CloneMeta):
             attrs=None,
             exclude=None,
             many_to_one=None,
+            one_to_many=None,
             many_to_many=None,
             one_to_one=None
     ):
         many_to_one = many_to_one or self.many_to_one
+        one_to_many = one_to_many or self.one_to_many
         many_to_many = many_to_many or self.many_to_many
         one_to_one = one_to_one or self.one_to_one
         _pre_create_child = getattr(self.instance, '_pre_create_child', self._pre_create_child)
@@ -121,6 +138,8 @@ class CloneHandler(metaclass=CloneMeta):
             cloned.save()
             if many_to_one:
                 self._create_many_to_one(cloned, many_to_one=many_to_one)
+            if one_to_many:
+                self._create_one_to_many(cloned, one_to_many=one_to_many)
             if many_to_many:
                 self._create_many_to_many(cloned, many_to_many=many_to_many)
             if one_to_one:

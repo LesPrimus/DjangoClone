@@ -5,7 +5,8 @@ from django.db import models
 from django_clone_helper.helpers import CloneHandler
 from django_clone_helper.utils import (
     ManyToOneParam,
-    OneToOneParam
+    OneToManyParam,
+    OneToOneParam,
 )
 
 
@@ -37,7 +38,9 @@ class Album(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
 
     class clone(CloneHandler):
-        pass
+        one_to_many = [
+            OneToManyParam(name='artist', reverse_name='album_set')
+        ]
 
     def __str__(self):
         return self.title
