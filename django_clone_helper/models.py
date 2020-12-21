@@ -6,7 +6,7 @@ from django_clone_helper.helpers import CloneHandler
 from django_clone_helper.utils import (
     ManyToOneParam,
     OneToManyParam,
-    OneToOneParam,
+    OneToOneParam, ManyToManyParam,
 )
 
 
@@ -63,7 +63,9 @@ class Compilation(models.Model):
     songs = models.ManyToManyField(Song)
 
     class clone(CloneHandler):
-        pass
+        many_to_many = [
+            ManyToManyParam(name='songs', reverse_name='compilation_set')
+        ]
 
     def __str__(self):
         return self.title

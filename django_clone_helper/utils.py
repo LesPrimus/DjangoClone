@@ -43,6 +43,10 @@ class OneToOneParam(ReverseParam):
     pass
 
 
+class ManyToManyParam(ReverseParam):
+    pass
+
+
 def is_iterable(obj):
     try:
         iter(obj)

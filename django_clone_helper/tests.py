@@ -149,6 +149,7 @@ class TestSuite:
         attrs = {'title': 'New Title'}
         cloned_compilation = compilation.clone.create_child(attrs=attrs)
         check_model_count(Compilation, 2)
+        check_model_count(Song, 2)
         assert cloned_compilation.title == attrs.get('title')
         assert cloned_compilation.songs.count() == 2
 

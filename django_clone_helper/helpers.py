@@ -102,6 +102,16 @@ class CloneHandler(metaclass=CloneMeta):
                     result.append(cloned_o2o)
         return result
 
+    def _pre_create_many_to_many(self, cloned, many_to_many):
+        result = []
+        for param in many_to_many:
+            source = getattr(self.instance, param.name)
+            destination = getattr(cloned, param.name)
+            for m2m_relation in source.all():
+                destination.add(m2m_relation)
+                result.append(m2m_relation)
+        return result
+
     def _create_many_to_one(self, cloned, many_to_one, commit=True):
         cloned_fks = self._pre_create_many_to_one(cloned, commit=commit, many_to_one=many_to_one)
         return cloned_fks
@@ -110,8 +120,9 @@ class CloneHandler(metaclass=CloneMeta):
         cloned_fks = self._pre_create_one_to_many(cloned, one_to_many=one_to_many, commit=commit)
         return cloned_fks
 
-    def _create_many_to_many(self, cloned, commit=True, many_to_many=None):
-        pass
+    def _create_many_to_many(self, cloned, many_to_many):
+        m2m_added = self._pre_create_many_to_many(cloned, many_to_many=many_to_many)
+        return m2m_added
 
     def _create_one_to_one(self, cloned, one_to_one, commit=True):
         one_to_one = self._pre_create_one_to_one(cloned, one_to_one=one_to_one, commit=commit)
