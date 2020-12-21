@@ -34,7 +34,7 @@ Add a clone (class) to a model.
 
 ---
 Call the create_child method to clone the instance and related ManyToOne, ManyToMany, etc..
-based on the configurations on the clone(CloneHandler) class.
+based on the clone(CloneHandler) configurations.
 
     artist = Artist.objects.get()
     artist.clone.make_child()
