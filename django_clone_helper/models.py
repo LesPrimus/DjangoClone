@@ -21,6 +21,13 @@ class Artist(models.Model):
         one_to_one = [
             OneToOneParam(name='passport', reverse_name='owner')
         ]
+        many_to_many = [
+            ManyToManyParam(
+                name='membership_set',
+                reverse_name='person',
+                attrs={'invite_reason': 'Need a great bassist'}
+            )
+        ]
 
     def __str__(self):
         return self.name

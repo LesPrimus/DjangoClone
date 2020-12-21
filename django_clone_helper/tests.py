@@ -5,7 +5,16 @@ from django.core.exceptions import ValidationError
 
 from .helpers import CloneHandler
 from .utils import ManyToOneParam, OneToManyParam, OneToOneParam
-from .models import Artist, Album, Song, Compilation, Instrument, Passport
+from .models import (
+    Artist,
+    Album,
+    Song,
+    Compilation,
+    Instrument,
+    Passport,
+    Group,
+    Membership,
+)
 
 
 @pytest.fixture
@@ -47,6 +56,12 @@ def compilation(artist, album):
     )
     compilation.songs.add(song, song1)
     return compilation
+
+
+@pytest.fixture
+def group():
+    group = Group.objects.create(name='Primus Band')
+    return group
 
 
 @pytest.fixture
@@ -152,6 +167,16 @@ class TestSuite:
         check_model_count(Song, 2)
         assert cloned_compilation.title == attrs.get('title')
         assert cloned_compilation.songs.count() == 2
+
+    def test_cloning_with_m2m_through(self, artist, group):
+        group.members.add(artist)
+        check_model_count(Membership, 1)
+        assert artist.membership_set.count() == 1
+        cloned_artist = artist.clone.create_child()
+        assert cloned_artist.membership_set.count() == 1
+        cloned_artist_membership = cloned_artist.membership_set.get()
+        assert cloned_artist_membership.invite_reason == 'Need a great bassist'
+        check_model_count(Membership, 2)
 
 
 @pytest.mark.django_db
