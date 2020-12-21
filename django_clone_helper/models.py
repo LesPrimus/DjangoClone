@@ -62,6 +62,9 @@ class Compilation(models.Model):
     title = models.CharField(max_length=100)
     songs = models.ManyToManyField(Song)
 
+    class clone(CloneHandler):
+        pass
+
     def __str__(self):
         return self.title
 

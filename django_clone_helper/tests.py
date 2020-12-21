@@ -35,6 +35,21 @@ def song(artist, album, db):
 
 
 @pytest.fixture
+def compilation(artist, album):
+    song = Song.objects.create(
+        title='Song1', album=album, artist=artist
+    )
+    song1 = Song.objects.create(
+        title='Song2', album=album, artist=artist
+    )
+    compilation = Compilation.objects.create(
+        title='New Compilation',
+    )
+    compilation.songs.add(song, song1)
+    return compilation
+
+
+@pytest.fixture
 def instrument():
     instrument = Instrument.objects.create(name='bass', serial_number='1234ABC')
     return instrument
@@ -127,6 +142,15 @@ class TestSuite:
         check_model_count(Artist, 2)
         cloned_album.refresh_from_db()
         assert cloned_album.artist != artist
+
+    def test_cloning_with_m2m(self, compilation):
+        check_model_count(Compilation, 1)
+        check_model_count(Song, 2)
+        attrs = {'title': 'New Title'}
+        cloned_compilation = compilation.clone.create_child(attrs=attrs)
+        check_model_count(Compilation, 2)
+        assert cloned_compilation.title == attrs.get('title')
+        assert cloned_compilation.songs.count() == 2
 
 
 @pytest.mark.django_db
