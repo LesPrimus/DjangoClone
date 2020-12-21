@@ -34,9 +34,14 @@ Add a clone (class) to a model.
 
 ---
 Call the create_child method to clone the instance and related ManyToOne, ManyToMany, etc..
-based on the clone(CloneHandler) configurations.
+based on the CloneHandler subclass configurations.
 
     artist = Artist.objects.get()
     artist.clone.make_child()
 ---
-To-Do add more examples
+or pass ManyToOneParam, OneToOneParam etc. as  arguments to instance.create_child
+
+---
+    m2o_param = ManyToOneParam(name='album_set', reverse_name='artist',attrs={'title': 'cloned album title'})
+    artist.clone.make_child(many_to_one=[m2o_param])
+---
