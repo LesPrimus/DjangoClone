@@ -17,17 +17,14 @@ class Artist(models.Model):
         many_to_one = [
             ManyToOneParam(name='album_set', reverse_name='artist', attrs={'title': 'cloned album title'}),
             ManyToOneParam(name='song_set', reverse_name='artist', attrs={'title': 'cloned song title'}),
+            ManyToOneParam(name='membership_set', reverse_name='person', attrs={'invite_reason': 'Need a great bassist'}),
         ]
         one_to_one = [
             OneToOneParam(name='passport', reverse_name='owner')
         ]
-        many_to_many = [
-            ManyToManyParam(
-                name='membership_set',
-                reverse_name='person',
-                attrs={'invite_reason': 'Need a great bassist'}
-            )
-        ]
+
+    def set_album_title(self):
+        return f'{self.name}--album'
 
     def __str__(self):
         return self.name

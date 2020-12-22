@@ -4,7 +4,7 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from .helpers import CloneHandler
-from .utils import ManyToOneParam, OneToManyParam, OneToOneParam
+from .utils import ManyToOneParam, OneToManyParam, OneToOneParam, ParentLookUp
 from .models import (
     Artist,
     Album,
@@ -127,6 +127,17 @@ class TestSuite:
         cloned_instrument = instrument.clone.create_child(attrs={'id': uuid4()})
         assert instrument.id != cloned_instrument.id
 
+    def test_cloning_model_with_parent_lookup_attrs_override(self, album):
+        artist = album.artist
+        m2o_param = ManyToOneParam(
+            name='album_set',
+            reverse_name='artist',
+            attrs={'title': ParentLookUp(name='artist.set_album_title')}
+        )
+        cloned_artist = artist.clone.create_child(many_to_one=[m2o_param])
+        cloned_album = cloned_artist.album_set.get()
+        assert cloned_album.title == f'{cloned_album.artist.set_album_title()}'
+
     def test_cloning_with_auto_now_field(self, instrument):
         cloned_instrument = instrument.clone.create_child(attrs={'id': uuid4()})
         assert cloned_instrument.created_at != instrument.created_at
@@ -168,7 +179,7 @@ class TestSuite:
         assert cloned_compilation.title == attrs.get('title')
         assert cloned_compilation.songs.count() == 2
 
-    def test_cloning_with_m2m_through(self, artist, group):
+    def test_cloning_m2m_through_fk(self, artist, group):
         group.members.add(artist)
         check_model_count(Membership, 1)
         assert artist.membership_set.count() == 1

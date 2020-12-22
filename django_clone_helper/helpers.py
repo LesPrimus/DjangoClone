@@ -1,6 +1,7 @@
+import operator
 from copy import copy
 
-from django_clone_helper.utils import generate_unique
+from django_clone_helper.utils import generate_unique, ParentLookUp
 
 
 class CloneMeta(type):
@@ -30,6 +31,13 @@ class CloneHandler(metaclass=CloneMeta):
         return instance
 
     @classmethod
+    def _get_value_from_parent(cls, parent, value: ParentLookUp):
+        try:
+            return operator.attrgetter(value.name)(parent)
+        except AttributeError as e:
+            raise e
+
+    @classmethod
     def _set_unique_constrain(cls, instance, prefix):
         fields = [
             field for field in instance._meta.get_fields()
@@ -50,7 +58,8 @@ class CloneHandler(metaclass=CloneMeta):
         cloned.pk = None
         for k, v in attrs.items():
             if hasattr(instance, k):
-                setattr(cloned, k, v() if callable(v) else v)
+                value = v if not isinstance(v, ParentLookUp) else cls._get_value_from_parent(cloned, v)
+                setattr(cloned, k, value() if callable(value) else value)
         # set a default if instance field in exclude
         for item in exclude:
             field = instance._meta.get_field(item)
@@ -108,15 +117,8 @@ class CloneHandler(metaclass=CloneMeta):
             source = getattr(self.instance, param.name)
             destination = getattr(cloned, param.name)
             for m2m_relation in source.all():
-                if source.auto_created:
-                    destination.add(m2m_relation)
-                    result.append(m2m_relation)
-                else:
-                    cloned_through = self._create_clone(m2m_relation, attrs=param.attrs)
-                    setattr(cloned_through, param.reverse_name, cloned)
-                    if commit is True:
-                        cloned_through.save()
-                    result.append(cloned_through)
+                destination.add(m2m_relation)
+                result.append(m2m_relation)
         return result
 
     def _create_many_to_one(self, cloned, many_to_one, commit=True):

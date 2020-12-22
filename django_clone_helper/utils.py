@@ -1,3 +1,4 @@
+from collections import namedtuple
 from collections.abc import MutableMapping
 
 from django.db.models import Model
@@ -45,6 +46,9 @@ class OneToOneParam(ReverseParam):
 
 class ManyToManyParam(ReverseParam):
     pass
+
+
+ParentLookUp = namedtuple('ParentLookUp', ['name'])
 
 
 def is_iterable(obj):
