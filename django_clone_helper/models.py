@@ -22,6 +22,9 @@ class Artist(models.Model):
         one_to_one = [
             OneToOneParam(name='passport', reverse_name='owner')
         ]
+        many_to_many = [
+            ManyToManyParam(name='group_set', reverse_name='members')
+        ]
 
     def set_album_title(self):
         return f'{self.name}--album'

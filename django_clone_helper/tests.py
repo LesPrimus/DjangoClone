@@ -179,7 +179,7 @@ class TestSuite:
         assert cloned_compilation.title == attrs.get('title')
         assert cloned_compilation.songs.count() == 2
 
-    def test_cloning_m2m_through_fk(self, artist, group):
+    def test_cloning_through_fk(self, artist, group):
         group.members.add(artist)
         check_model_count(Membership, 1)
         assert artist.membership_set.count() == 1
@@ -188,6 +188,18 @@ class TestSuite:
         cloned_artist_membership = cloned_artist.membership_set.get()
         assert cloned_artist_membership.invite_reason == 'Need a great bassist'
         check_model_count(Membership, 2)
+
+    def test_cloning_m2m_through(self, artist, group):
+        group.members.add(artist)
+        assert artist.group_set.count() == 1
+        assert artist.membership_set.count() == 1
+        check_model_count(Group, 1)
+        check_model_count(Membership, 1)
+
+        cloned_artist = artist.clone.create_child()
+        check_model_count(Membership, 2)
+        assert cloned_artist.group_set.count() == 1
+        assert cloned_artist.membership_set.count() == 1
 
 
 @pytest.mark.django_db
