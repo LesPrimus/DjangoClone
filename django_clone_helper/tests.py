@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import ForeignKey
 
 from .helpers import CloneHandler
-from .utils import ManyToOneParam, OneToManyParam, OneToOneParam, ParentLookUp, Cloned
+from .utils import ManyToOneParam, OneToManyParam, OneToOneParam, ParentLookUp, Cloned, ManyToManyParam
 from django_clone_helper.models import (
     Artist,
     Album,
@@ -241,3 +241,27 @@ class TestManyToOne:
         assert cloned_song.artist == cloned_artist
         assert cloned_song.album == cloned_album
         assert cloned_song.title == song.title
+
+
+@pytest.mark.django_db
+class TestManyToMany:
+
+    def test_cloning_model_with_m2m(self, compilation, monkeypatch):
+        class complation_clone(CloneHandler): # noqa
+            many_to_many = [
+                ManyToManyParam(name='songs', reverse_name='compilation_set')
+            ]
+        monkeypatch.setattr(Compilation, 'clone', complation_clone)
+
+        check_model_count(Compilation, 1)
+        check_model_count(Song, 2)
+        check_model_count(Artist, 1)
+        check_model_count(Album, 1)
+
+        cloned_compilation = compilation.clone.create_child()
+
+        assert cloned_compilation.songs.count() == 2
+        assert compilation.songs.count() == 2
+
+        check_model_count(Compilation, 2)
+        check_model_count(Song, 2)
