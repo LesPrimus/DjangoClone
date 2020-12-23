@@ -36,6 +36,9 @@ class Membership(models.Model):
 class Passport(models.Model):
     owner = models.OneToOneField(Artist, primary_key=True, on_delete=models.CASCADE)
 
+    class clone(CloneHandler):
+        pass
+
     def __str__(self):
         return f'{self.__class__.__name__}-{self.owner.name}'
 
