@@ -81,7 +81,7 @@ class Instrument(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class clone(CloneHandler):
-        unique_field_prefix = 'Clone'
+        pass
 
     def __str__(self):
         return self.name

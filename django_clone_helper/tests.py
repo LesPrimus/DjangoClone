@@ -99,6 +99,11 @@ class TestModel:
         with pytest.raises(ValidationError):
             artist.clone.create_child()
 
+    def test_clone_model_with_unique_fields(self, instrument):
+        cloned_instrument = instrument.clone.create_child(attrs={'id': uuid4()})
+        check_model_count(Instrument, 2)
+        assert cloned_instrument.serial_number == f'{instrument.serial_number}{1}'
+
 
 @pytest.mark.django_db
 class TestOneToOne:
@@ -383,13 +388,7 @@ class TestManyToOne:
 #         check_model_count(Album, 2)
 #         assert artist.album_set.count() == 1
 #         assert cloned_artist.album_set.count() == 1
-#
-#     def test_clone_handler_with_unique_fields(self, instrument):
-#         handler = CloneHandler(instance=instrument, owner=instrument.__class__)
-#         cloned_instrument = handler.create_child(commit=True, attrs={'id': uuid4()})
-#         check_model_count(Instrument, 2)
-#         assert cloned_instrument.serial_number == f'{instrument.serial_number}{1}'
-#
+##
 #     def test_clone_handler_with_one_to_many(self, album):
 #         artist = album.artist
 #         check_model_count(Artist, 1)
