@@ -1,7 +1,7 @@
 import operator
 from copy import copy
 
-from django_clone_helper.utils import generate_unique, ParentLookUp
+from django_clone_helper.utils import generate_unique, ParentLookUp, Cloned
 
 
 class CloneMeta(type):
@@ -37,6 +37,14 @@ class CloneHandler(metaclass=CloneMeta):
         except AttributeError as e:
             raise e
 
+    def _set_cloned_fk(self, cloned_inst, values: list, cloned_mapping: dict):
+        for cloned_param in values:
+            if hasattr(cloned_inst, cloned_param.name):
+                original_fk = getattr(cloned_inst, cloned_param.name)
+                cloned_fk = cloned_mapping.get(original_fk, None)
+                if cloned_fk:
+                    setattr(cloned_inst, cloned_param.name, cloned_fk)
+
     @classmethod
     def _set_unique_constrain(cls, instance, prefix):
         fields = [
@@ -71,18 +79,20 @@ class CloneHandler(metaclass=CloneMeta):
         return self._create_clone(instance, attrs=attrs, exclude=exclude)
 
     def _pre_create_many_to_one(self, cloned, many_to_one, commit=True):
-        result = []
+        result = {}
         for param in many_to_one:
             assert param.reverse_name
+            cloned_attrs = [param.attrs.pop(k) for k, v in dict(param.attrs).items() if isinstance(v, Cloned)]
             if hasattr(self.instance, param.name):
                 m2o_manager = getattr(self.instance, param.name)
                 queyset = m2o_manager.all()
                 for inst in queyset:
                     cloned_inst = self._create_clone(inst, attrs=param.attrs, exclude=param.exclude)
                     setattr(cloned_inst, param.reverse_name, cloned)
+                    result[inst] = cloned_inst
+                    self._set_cloned_fk(cloned_inst, cloned_attrs, result)
                     if commit is True:
                         cloned_inst.save()
-                    result.append(cloned)
         return result
 
     def _pre_create_one_to_many(self, cloned, one_to_many, commit=True):

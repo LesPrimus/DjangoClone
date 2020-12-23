@@ -3,28 +3,13 @@ from uuid import uuid4
 from django.db import models
 
 from django_clone_helper.helpers import CloneHandler
-from django_clone_helper.utils import (
-    ManyToOneParam,
-    OneToManyParam,
-    OneToOneParam, ManyToManyParam,
-)
 
 
 class Artist(models.Model):
     name = models.CharField(max_length=100)
 
     class clone(CloneHandler):
-        many_to_one = [
-            ManyToOneParam(name='album_set', reverse_name='artist', attrs={'title': 'cloned album title'}),
-            ManyToOneParam(name='song_set', reverse_name='artist', attrs={'title': 'cloned song title'}),
-            ManyToOneParam(name='membership_set', reverse_name='person', attrs={'invite_reason': 'Need a great bassist'}),
-        ]
-        one_to_one = [
-            OneToOneParam(name='passport', reverse_name='owner')
-        ]
-        many_to_many = [
-            ManyToManyParam(name='group_set', reverse_name='members')
-        ]
+        pass
 
     def set_album_title(self):
         return f'{self.name}--album'
@@ -60,9 +45,7 @@ class Album(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
 
     class clone(CloneHandler):
-        one_to_many = [
-            OneToManyParam(name='artist', reverse_name='album_set')
-        ]
+        pass
 
     def __str__(self):
         return self.title
@@ -85,9 +68,7 @@ class Compilation(models.Model):
     songs = models.ManyToManyField(Song)
 
     class clone(CloneHandler):
-        many_to_many = [
-            ManyToManyParam(name='songs', reverse_name='compilation_set')
-        ]
+        pass
 
     def __str__(self):
         return self.title

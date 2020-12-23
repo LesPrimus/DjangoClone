@@ -49,6 +49,7 @@ class ManyToManyParam(ReverseParam):
 
 
 ParentLookUp = namedtuple('ParentLookUp', ['name'])
+Cloned = namedtuple('Cloned', ['name'])
 
 
 def is_iterable(obj):
