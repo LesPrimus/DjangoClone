@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import patch, PropertyMock
 from uuid import uuid4
 
@@ -265,3 +266,31 @@ class TestManyToMany:
 
         check_model_count(Compilation, 2)
         check_model_count(Song, 2)
+
+    def test_cloning_m2m_with_through(self, artist, group, monkeypatch):
+        class artist_clone(CloneHandler): # noqa
+            many_to_one = [
+                ManyToOneParam(
+                    name='membership_set',
+                    reverse_name='person',
+                    attrs={
+                        'invite_reason': 'Need a great bassist',
+                    },
+                )
+            ]
+        monkeypatch.setattr(Artist, 'clone', artist_clone)
+        group.members.add(artist)
+        check_model_count(Artist, 1)
+        check_model_count(Group, 1)
+        check_model_count(Membership, 1)
+        cloned_artist = artist.clone.create_child()
+        assert cloned_artist.membership_set.count() == 1
+        assert artist.membership_set.count() == 1
+        assert group.members.count() == 2
+        cloned_membership = cloned_artist.membership_set.get()
+        assert cloned_membership.invite_reason == 'Need a great bassist'
+        assert cloned_membership.group == group
+        assert cloned_membership.date_joined == artist.membership_set.get().date_joined
+        check_model_count(Artist, 2)
+        check_model_count(Group, 1)
+        check_model_count(Membership, 2)
