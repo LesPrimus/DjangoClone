@@ -259,7 +259,7 @@ class TestManyToMany:
         check_model_count(Compilation, 2)
         check_model_count(Song, 2)
 
-    def test_cloning_m2m_with_through(self, artist, group, patch_clone):
+    def test_cloning_m2m_with_through_explicit(self, artist, group, patch_clone):
         many_to_one = [
             ManyToOneParam(
                 name='membership_set',
@@ -285,3 +285,22 @@ class TestManyToMany:
         check_model_count(Artist, 2)
         check_model_count(Group, 1)
         check_model_count(Membership, 2)
+
+    def test_cloning_m2m_through_implicit(self, artist, group, patch_clone):
+        many_to_many = [
+            ManyToManyParam(name='group_set', reverse_name='members')
+        ]
+        patch_clone(Artist, many_to_many=many_to_many)
+        artist.group_set.add(group)
+        check_model_count(Artist, 1)
+        check_model_count(Group, 1)
+        check_model_count(Membership, 1)
+
+        cloned_artist = artist.clone.create_child()
+
+        check_model_count(Artist, 2)
+        check_model_count(Group, 1)
+        check_model_count(Membership, 2)
+        cloned_membership = cloned_artist.membership_set.get()
+        assert cloned_membership.person == cloned_artist
+        assert cloned_membership.group == artist.membership_set.get().group
