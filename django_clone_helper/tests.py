@@ -77,6 +77,19 @@ def check_model_count(model, expected):
     assert model.objects.count() == expected
 
 
+@pytest.fixture
+def patch_clone(monkeypatch):
+    def _patch_factory(model, **kwargs):
+        class clone_patch(CloneHandler):
+            exclude = kwargs.get('exclude', [])
+            many_to_one = kwargs.get('many_to_one', [])
+            many_to_many = kwargs.get('many_to_many', [])
+            one_to_many = kwargs.get('one_to_many', [])
+            one_to_one = kwargs.get('one_to_one', [])
+        monkeypatch.setattr(model, 'clone', clone_patch)
+    return _patch_factory
+
+
 @pytest.mark.django_db
 class TestModel:
 
@@ -91,11 +104,8 @@ class TestModel:
         check_model_count(Artist, 2)
         assert cloned_artist.name == attrs.get('name')
 
-    def test_clone_model_excluding_required_attr_raise(self, monkeypatch, artist):
-        class artist_clone_patch(CloneHandler): # noqa
-            exclude = ['name']
-        monkeypatch.setattr(Artist, 'clone', artist_clone_patch)
-
+    def test_clone_model_excluding_required_attr_raise(self, patch_clone, artist):
+        patch_clone(Artist, exclude=['name'])
         with pytest.raises(ValidationError):
             artist.clone.create_child()
 
@@ -107,16 +117,9 @@ class TestModel:
 
 @pytest.mark.django_db
 class TestOneToOne:
-    def test_clone_model_with_o2o_attr(self, monkeypatch, passport):
-        class artist_clone(CloneHandler): # noqa
-            one_to_one = [
-                OneToOneParam(
-                    name='passport',
-                    reverse_name='owner'
-                )
-            ]
-        monkeypatch.setattr(Artist, 'clone', artist_clone)
-
+    def test_clone_model_with_o2o_attr(self, patch_clone, passport):
+        one_to_one = [OneToOneParam(name='passport', reverse_name='owner')]
+        patch_clone(Artist, one_to_one=one_to_one)
         artist = passport.owner
         check_model_count(Artist, 1)
         check_model_count(Passport, 1)
@@ -129,18 +132,11 @@ class TestOneToOne:
 
 @pytest.mark.django_db
 class TestManyToOne:
-    def test_clone_model_with_m2o_attr(self, monkeypatch, album):
-        class artist_clone(CloneHandler): # noqa
-            many_to_one = [
-                ManyToOneParam(
-                    name='album_set',
-                    reverse_name='artist'
-                )
-            ]
+    def test_clone_model_with_m2o_attr(self, patch_clone, album):
+        many_to_one = [ManyToOneParam(name='album_set', reverse_name='artist')]
+        patch_clone(Artist, many_to_one=many_to_one)
 
-        monkeypatch.setattr(Artist, 'clone', artist_clone)
         artist = album.artist
-
         check_model_count(Artist, 1)
         check_model_count(Album, 1)
 
@@ -150,16 +146,16 @@ class TestManyToOne:
         assert artist.album_set.get() != cloned_artist.album_set.get()
         assert artist.album_set.get().title == cloned_artist.album_set.get().title
 
-    def test_clone_model_with_m2o_attr_override(self, monkeypatch, album):
-        class artist_clone(CloneHandler): # noqa
-            many_to_one = [
-                ManyToOneParam(
-                    name='album_set',
-                    reverse_name='artist',
-                    attrs={'title': 'Override Title'}
-                )
-            ]
-        monkeypatch.setattr(Artist, 'clone', artist_clone)
+    def test_clone_model_with_m2o_attr_override(self, patch_clone, album):
+        many_to_one = [
+            ManyToOneParam(
+                name='album_set',
+                reverse_name='artist',
+                attrs={'title': 'Override Title'}
+            )
+        ]
+
+        patch_clone(Artist, many_to_one=many_to_one)
 
         artist = album.artist
         check_model_count(Artist, 1)
@@ -189,12 +185,11 @@ class TestManyToOne:
         assert artist.song_set.count() == 2
         assert album.song_set.count() == 2
 
-    def test_cloning_with_multiple_m2o(self, monkeypatch, song):
-        class artist_clone(CloneHandler): # noqa
-            many_to_one = [
-                ManyToOneParam(name='song_set', reverse_name='artist'),
-            ]
-        monkeypatch.setattr(Artist, 'clone', artist_clone)
+    def test_cloning_with_multiple_m2o(self, patch_clone, song):
+        many_to_one = [
+            ManyToOneParam(name='song_set', reverse_name='artist'),
+        ]
+        patch_clone(Artist, many_to_one=many_to_one)
 
         artist = song.artist
         check_model_count(Artist, 1)
@@ -215,13 +210,12 @@ class TestManyToOne:
         assert cloned_song.album == song.album  # same as parent.
         assert cloned_song.title == song.title  # same as parent.
 
-    def test_cloning_with_multiple_m2o__update_relations(self, monkeypatch, album, song):
-        class clone_artist(CloneHandler): # noqa
-            many_to_one = [
-                ManyToOneParam(name='album_set', reverse_name='artist'),
-                ManyToOneParam(name='song_set', reverse_name='artist', attrs={'album': Cloned('album')}),
-            ]
-        monkeypatch.setattr(Artist, 'clone', clone_artist)
+    def test_cloning_with_multiple_m2o__update_relations(self, patch_clone, album, song):
+        many_to_one = [
+            ManyToOneParam(name='album_set', reverse_name='artist'),
+            ManyToOneParam(name='song_set', reverse_name='artist', attrs={'album': Cloned('album')}),
+        ]
+        patch_clone(Artist, many_to_one=many_to_one)
         artist = album.artist
         assert artist == song.artist
         check_model_count(Artist, 1)
@@ -247,13 +241,11 @@ class TestManyToOne:
 @pytest.mark.django_db
 class TestManyToMany:
 
-    def test_cloning_model_with_m2m(self, compilation, monkeypatch):
-        class complation_clone(CloneHandler): # noqa
-            many_to_many = [
-                ManyToManyParam(name='songs', reverse_name='compilation_set')
-            ]
-        monkeypatch.setattr(Compilation, 'clone', complation_clone)
-
+    def test_cloning_model_with_m2m(self, compilation, patch_clone):
+        many_to_many = [
+            ManyToManyParam(name='songs', reverse_name='compilation_set')
+        ]
+        patch_clone(Compilation, many_to_many=many_to_many)
         check_model_count(Compilation, 1)
         check_model_count(Song, 2)
         check_model_count(Artist, 1)
@@ -267,18 +259,17 @@ class TestManyToMany:
         check_model_count(Compilation, 2)
         check_model_count(Song, 2)
 
-    def test_cloning_m2m_with_through(self, artist, group, monkeypatch):
-        class artist_clone(CloneHandler): # noqa
-            many_to_one = [
-                ManyToOneParam(
-                    name='membership_set',
-                    reverse_name='person',
-                    attrs={
-                        'invite_reason': 'Need a great bassist',
-                    },
-                )
-            ]
-        monkeypatch.setattr(Artist, 'clone', artist_clone)
+    def test_cloning_m2m_with_through(self, artist, group, patch_clone):
+        many_to_one = [
+            ManyToOneParam(
+                name='membership_set',
+                reverse_name='person',
+                attrs={
+                    'invite_reason': 'Need a great bassist',
+                },
+            )
+        ]
+        patch_clone(Artist, many_to_one=many_to_one)
         group.members.add(artist)
         check_model_count(Artist, 1)
         check_model_count(Group, 1)
