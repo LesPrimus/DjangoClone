@@ -7,7 +7,15 @@ from django.core.exceptions import ValidationError
 from django.db.models import ForeignKey
 
 from .helpers import CloneHandler
-from .utils import ManyToOneParam, OneToManyParam, OneToOneParam, ParentLookUp, Cloned, ManyToManyParam
+from .utils import (
+    ManyToOneParam,
+    OneToManyParam,
+    OneToOneParam,
+    ParentLookUp,
+    Cloned,
+    ManyToManyParam
+)
+
 from django_clone_helper.models import (
     Artist,
     Album,
@@ -17,6 +25,7 @@ from django_clone_helper.models import (
     Passport,
     Group,
     Membership,
+    BassGuitar
 )
 
 
@@ -73,6 +82,14 @@ def instrument():
     return instrument
 
 
+@pytest.fixture
+def bass_guitar():
+    bass = BassGuitar.objects.create(
+        id=uuid4(), name='Warwick', serial_number='4321ABC', type=BassGuitar.Type.ELECTRIC
+    )
+    return bass
+
+
 def check_model_count(model, expected):
     assert model.objects.count() == expected
 
@@ -114,8 +131,14 @@ class TestModel:
         check_model_count(Instrument, 2)
         assert cloned_instrument.serial_number == f'{instrument.serial_number}{1}'
 
-    def test_clone_model__with_inheritance(self):
-        pass
+    def test_clone_model__with_inheritance(self, bass_guitar: BassGuitar):
+        cloned_bass = bass_guitar.clone.create_child(
+            attrs={'id': uuid4(), 'name': 'Fender', 'type': BassGuitar.Type.ACOUSTIC}
+        )
+        check_model_count(BassGuitar, 2)
+        check_model_count(Instrument, 2)
+        assert cloned_bass.instrument_ptr != bass_guitar.instrument_ptr
+        assert cloned_bass.type != bass_guitar.type
 
 
 @pytest.mark.django_db
