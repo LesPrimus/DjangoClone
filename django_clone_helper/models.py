@@ -91,3 +91,14 @@ class Instrument(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class BassGuitar(Instrument):
+    class Type(models.TextChoices):
+        ACOUSTIC = 'AC'
+        ELECTRIC = 'EL'
+
+    type = models.CharField(max_length=2, choices=Type.choices, default=Type.ELECTRIC)
+
+    def __str__(self):
+        return self.name

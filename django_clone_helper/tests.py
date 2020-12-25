@@ -114,6 +114,9 @@ class TestModel:
         check_model_count(Instrument, 2)
         assert cloned_instrument.serial_number == f'{instrument.serial_number}{1}'
 
+    def test_clone_model__with_inheritance(self):
+        pass
+
 
 @pytest.mark.django_db
 class TestOneToOne:
