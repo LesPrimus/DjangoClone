@@ -22,6 +22,9 @@ class Group(models.Model):
     name = models.CharField(max_length=128)
     members = models.ManyToManyField(Artist, through='Membership')
 
+    class clone(CloneHandler):
+        pass
+
     def __str__(self):
         return self.name
 
