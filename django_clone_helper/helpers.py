@@ -18,7 +18,7 @@ class CloneHandler(metaclass=CloneMeta):
     one_to_one = []
     unique_field_prefix = None
 
-    def __init__(self, instance, owner):
+    def __init__(self, instance, owner=None):
         self.instance = instance
         self.owner = owner
 
