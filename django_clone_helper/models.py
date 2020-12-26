@@ -69,6 +69,17 @@ class Song(models.Model):
         return self.title
 
 
+class SongPart(models.Model):
+    name = models.CharField(max_length=50)
+    song = models.ForeignKey(Song, on_delete=models.CASCADE)
+
+    class clone(CloneHandler):
+        pass
+
+    def __str__(self):
+        return f'{self.song}--{self.name}'
+
+
 class Compilation(models.Model):
     title = models.CharField(max_length=100)
     songs = models.ManyToManyField(Song)
