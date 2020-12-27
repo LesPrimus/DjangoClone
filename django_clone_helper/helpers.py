@@ -1,7 +1,7 @@
 import operator
 from copy import copy
 
-from django_clone_helper.utils import generate_unique, ParentLookUp, Cloned
+from django_clone_helper.utils import generate_unique, ParentLookUp, Cloned, conditional_transaction
 
 
 class CloneMeta(type):
@@ -147,6 +147,7 @@ class CloneHandler(metaclass=CloneMeta):
         one_to_one = self._pre_create_one_to_one(cloned, one_to_one=one_to_one, commit=commit)
         return one_to_one
 
+    @conditional_transaction
     def create_child(
             self,
             commit=True,
@@ -155,7 +156,8 @@ class CloneHandler(metaclass=CloneMeta):
             many_to_one=None,
             one_to_many=None,
             many_to_many=None,
-            one_to_one=None
+            one_to_one=None,
+            transaction=False,
     ):
         many_to_one = many_to_one or self.many_to_one
         one_to_many = one_to_many or self.one_to_many
