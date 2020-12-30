@@ -1,8 +1,6 @@
 from collections import namedtuple
 from collections.abc import MutableMapping
-from functools import wraps
 
-from django.db import transaction
 from django.db.models import Model
 
 
@@ -28,21 +26,6 @@ class Param(MutableMapping):
         return len(self.attrs)
 
 
-# class RelatedParam(Param):
-#     def __init__(self, name, reverse_name, attrs=None, exclude=None):
-#         super().__init__(attrs=attrs, exclude=exclude)
-#         self.name = name
-#         self.reverse_name = reverse_name
-#
-#
-# class ManyToOne(RelatedParam):
-#     pass
-#
-#
-# class OneToOne(RelatedParam):
-#     pass
-
-
 ParentLookUp = namedtuple('ParentLookUp', ['name'])
 Cloned = namedtuple('Cloned', ['name'])
 
@@ -65,16 +48,6 @@ def generate_unique(instance: Model, field):
         lookup[field.name] = value + str(prefix)
         prefix += 1
     return lookup[field.name]
-
-
-def conditional_transaction(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if kwargs.get('transaction', None) is True:
-            with transaction.atomic():
-                return func(*args, **kwargs)
-        return func(*args, **kwargs)
-    return wrapper
 
 
 class ConditionalContextManager:

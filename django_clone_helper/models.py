@@ -120,7 +120,6 @@ class A(models.Model):
 
     class clone(CloneHandler):
         pass
-        # many_to_one = [ManyToOne(name='b_set', reverse_name='a')]
 
 
 class B(models.Model):
@@ -128,14 +127,12 @@ class B(models.Model):
 
     class clone(CloneHandler):
         pass
-        # many_to_one = [ManyToOne(name='c_set', reverse_name='b')]
 
 
 class C(models.Model):
     b = models.ForeignKey(B, on_delete=models.CASCADE)
 
     class clone(CloneHandler):
-        # many_to_one = [ManyToOne(name='d_set', reverse_name='c')]
         pass
 
 

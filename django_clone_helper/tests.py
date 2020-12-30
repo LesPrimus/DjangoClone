@@ -1,13 +1,8 @@
-import operator
-from collections import defaultdict
-from functools import reduce
 from uuid import uuid4
 
 import pytest
-from django.core.exceptions import ValidationError
-from django.db.models import query_utils, Q
 
-from .helpers import CloneHandler, get_model_from_string
+from .helpers import CloneHandler
 
 from django_clone_helper.models import (
     Artist,
@@ -251,27 +246,27 @@ class TestManyToOne:
         assert cloned_song.album == cloned_album
         assert cloned_song.title == song.title
 
-#     def test_cloning_with_many_to_one__related(self, song, patch_clone):
-#         many_to_one = [
-#             ManyToOneParam('songpart_set', reverse_name='song')
-#         ]
-#         patch_clone(Song, many_to_one=many_to_one)
-#
-#         intro = SongPart.objects.create(name='Intro', song=song)
-#         verse = SongPart.objects.create(name='Verse', song=song)
-#         outro = SongPart.objects.create(name='Outro', song=song)
-#         check_model_count(Song, 1)
-#         check_model_count(SongPart, 3)
-#
-#         cloned_song = song.clone.create_child()
-#         assert cloned_song.songpart_set.count() == 3
-#         check_model_count(SongPart, 6)
-#         assert cloned_song.songpart_set.values('pk') != song.songpart_set.values('pk')
-#         assert sorted(list(song.songpart_set.values_list('name', flat=True))) \
-#                == \
-#                sorted(list(cloned_song.songpart_set.values_list('name', flat=True)))
-#
-#
+    def test_cloning_with_many_to_one__related(self, song, patch_clone):
+        many_to_one = [
+            Param(name='songpart_set')
+        ]
+        patch_clone(Song, many_to_one=many_to_one)
+
+        intro = SongPart.objects.create(name='Intro', song=song)
+        verse = SongPart.objects.create(name='Verse', song=song)
+        outro = SongPart.objects.create(name='Outro', song=song)
+        check_model_count(Song, 1)
+        check_model_count(SongPart, 3)
+
+        cloned_song = song.clone.make_clone()
+        assert cloned_song.songpart_set.count() == 3
+        check_model_count(SongPart, 6)
+        assert cloned_song.songpart_set.values('pk') != song.songpart_set.values('pk')
+        assert sorted(list(song.songpart_set.values_list('name', flat=True))) \
+               == \
+               sorted(list(cloned_song.songpart_set.values_list('name', flat=True)))
+
+
 # @pytest.mark.django_db
 # class TestManyToMany:
 #
