@@ -3,6 +3,7 @@ from uuid import uuid4
 from django.db import models
 
 from django_clone_helper.helpers import CloneHandler
+from django_clone_helper.utils import ManyToOne
 
 
 class Artist(models.Model):
@@ -113,3 +114,34 @@ class BassGuitar(Instrument):
 
     def __str__(self):
         return self.name
+
+
+class A(models.Model):
+    pass
+
+    class clone(CloneHandler):
+        pass
+        # many_to_one = [ManyToOne(name='b_set', reverse_name='a')]
+
+
+class B(models.Model):
+    a = models.ForeignKey(A, on_delete=models.CASCADE)
+
+    class clone(CloneHandler):
+        pass
+        # many_to_one = [ManyToOne(name='c_set', reverse_name='b')]
+
+
+class C(models.Model):
+    b = models.ForeignKey(B, on_delete=models.CASCADE)
+
+    class clone(CloneHandler):
+        # many_to_one = [ManyToOne(name='d_set', reverse_name='c')]
+        pass
+
+
+class D(models.Model):
+    c = models.ForeignKey(C, on_delete=models.CASCADE)
+
+    class clone(CloneHandler):
+        pass

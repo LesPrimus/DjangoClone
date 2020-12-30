@@ -1,7 +1,17 @@
 import operator
+from collections import defaultdict, Mapping
 from copy import copy
 
-from django_clone_helper.utils import generate_unique, ParentLookUp, Cloned, conditional_transaction
+from django.contrib.admin.utils import NestedObjects
+from django.db.models import QuerySet
+
+from django_clone_helper.utils import Cloned, generate_unique
+
+
+def get_model_from_string(model_name):
+    from django.apps import apps
+    Model = apps.get_model(model_name)
+    return Model
 
 
 class CloneMeta(type):
@@ -12,168 +22,96 @@ class CloneMeta(type):
 
 class CloneHandler(metaclass=CloneMeta):
     exclude = []
-    many_to_one = []
-    one_to_many = []
-    many_to_many = []
     one_to_one = []
+    many_to_one = []
+    many_to_many = []
     unique_field_prefix = None
 
-    def __init__(self, instance, owner=None):
+    def __init__(self, instance, owner=None, mapping=None):
         self.instance = instance
-        self.owner = owner
+        self.owner = owner or self.instance.__class__
+        self.mapping = mapping or {}
 
     @classmethod
-    def _pre_save_validation(cls, instance):
-        try:
-            instance.full_clean()
-        except Exception as e:
-            raise e
-        return instance
-
-    @classmethod
-    def _get_value_from_parent(cls, parent, value: ParentLookUp):
-        try:
-            return operator.attrgetter(value.name)(parent)
-        except AttributeError as e:
-            raise e
-
-    def _set_cloned_fk(self, cloned_inst, values: list, cloned_mapping: dict):
-        for cloned_param in values:
-            if hasattr(cloned_inst, cloned_param.name):
-                original_fk = getattr(cloned_inst, cloned_param.name)
-                cloned_fk = cloned_mapping.get(original_fk, None)
-                if cloned_fk:
-                    setattr(cloned_inst, cloned_param.name, cloned_fk)
-
-    @classmethod
-    def _set_unique_constrain(cls, instance, prefix):
+    def _set_unique_constrain(cls, instance, prefix=None):
         fields = [
             field for field in instance._meta.get_fields()
             if field.concrete and field.unique and not field.primary_key
         ]
         for field in fields:
             if hasattr(instance, field.name):
-                # Todo add a callable to model.clone settings
                 setattr(instance, field.name, generate_unique(instance, field))
         return instance
 
-    @classmethod
-    def _create_clone(cls, instance, attrs=None, exclude=None):
-        attrs = attrs or {}
+    @staticmethod
+    def get_many_to_one_fields(instance):
+        fields = [
+            f for f in instance._meta.get_fields()
+            if f.many_to_one
+        ]
+        return fields
+
+    @staticmethod
+    def get_one_to_one_fields(instance):
+        fields = [
+            f for f in instance._meta.get_fields()
+            if f.one_to_one
+        ]
+        return fields
+
+    def clone_instance(self, instance, exclude=None, attrs=None, commit=True):
         exclude = exclude or []
-        assert not any([k in exclude for k in attrs.keys()])
+        attrs = attrs or {}
         cloned = copy(instance)
         cloned.pk = None
         for k, v in attrs.items():
-            if hasattr(instance, k):
-                value = v if not isinstance(v, ParentLookUp) else cls._get_value_from_parent(cloned, v)
-                setattr(cloned, k, value() if callable(value) else value)
-        # set a default if instance field in exclude
-        for item in exclude:
-            field = instance._meta.get_field(item)
-            setattr(cloned, field.attname, field.get_default())
-        cls._set_unique_constrain(cloned, prefix=cls.unique_field_prefix)
+            if k in exclude:
+                continue
+            setattr(cloned, k, v)
+        if commit:
+            self._set_unique_constrain(cloned)
+            cloned.full_clean()
+            cloned.save()
         return cloned
 
-    def _pre_create_child(self, instance, attrs=None, exclude=None):
-        return self._create_clone(instance, attrs=attrs, exclude=exclude)
+    def clone_one_to_one(self, one_to_one):
+        result = {}
+        for param in one_to_one:
+            o2o = getattr(self.instance, param.name)
+            for field in self.get_one_to_one_fields(o2o):
+                original_rel = getattr(o2o, field.name)
+                cloned_rel = self.mapping.get(original_rel, None)
+                if cloned_rel is not None:
+                    param.attrs.update({field.name: cloned_rel})
+            cloned_o2o = o2o.clone.make_clone(attrs=param.attrs, exclude=param.exclude)
+            result.update({o2o: cloned_o2o})
+        return result
 
-    def _pre_create_many_to_one(self, cloned, many_to_one, commit=True):
+    def clone_many_to_one(self, many_to_one):
         result = {}
         for param in many_to_one:
-            assert param.reverse_name
-            cloned_attrs = [param.attrs.pop(k) for k, v in dict(param.attrs).items() if isinstance(v, Cloned)]
-            if hasattr(self.instance, param.name):
-                m2o_manager = getattr(self.instance, param.name)
-                queyset = m2o_manager.all()
-                for inst in queyset:
-                    cloned_inst = self._create_clone(inst, attrs=param.attrs, exclude=param.exclude)
-                    setattr(cloned_inst, param.reverse_name, cloned)
-                    result[inst] = cloned_inst
-                    self._set_cloned_fk(cloned_inst, cloned_attrs, result)
-                    if commit is True:
-                        cloned_inst.save()
+            related_manager = getattr(self.instance, param.name)
+            for m2o in related_manager.all():
+                m2o_fields = self.get_many_to_one_fields(instance=m2o)
+                for field in m2o_fields:
+                    original_rel = getattr(m2o, field.name)
+                    cloned_rel = self.mapping.get(original_rel, None)
+                    if cloned_rel is not None:
+                        param.attrs.update({field.name: cloned_rel})
+                cloned_m2o = m2o.clone.make_clone(attrs=param.attrs, exclude=param.exclude)
+                result.update({m2o: cloned_m2o})
+                self.mapping.update(result)
         return result
 
-    def _pre_create_one_to_many(self, cloned, one_to_many, commit=True):
-        result = []
-        for param in one_to_many:
-            assert param.reverse_name
-            if hasattr(self.instance, param.name):
-                o2m = getattr(self.instance, param.name)
-                cloned_o2m = self._create_clone(o2m, attrs=param.attrs, exclude=param.exclude)
-                if commit is True:
-                    cloned_o2m.save()
-                    getattr(cloned_o2m, param.reverse_name).add(cloned)
-                result.append(cloned_o2m)
-        return result
-
-    def _pre_create_one_to_one(self, cloned, one_to_one, commit=True):
-        result = []
-        for param in one_to_one:
-            assert param.reverse_name
-            if hasattr(self.instance, param.name):
-                o2o = getattr(self.instance, param.name)
-                cloned_o2o = self._create_clone(o2o, attrs=param.attrs, exclude=param.exclude)
-                setattr(cloned_o2o, param.reverse_name, cloned)
-                if commit is True:
-                    cloned_o2o.save()
-                    result.append(cloned_o2o)
-        return result
-
-    def _pre_create_many_to_many(self, cloned, many_to_many, commit=True):
-        result = []
-        for param in many_to_many:
-            source = getattr(self.instance, param.name)
-            destination = getattr(cloned, param.name)
-            for m2m_relation in source.all():
-                destination.add(m2m_relation)
-                result.append(m2m_relation)
-        return result
-
-    def _create_many_to_one(self, cloned, many_to_one, commit=True):
-        cloned_fks = self._pre_create_many_to_one(cloned, commit=commit, many_to_one=many_to_one)
-        return cloned_fks
-
-    def _create_one_to_many(self, cloned, one_to_many, commit=True):
-        cloned_fks = self._pre_create_one_to_many(cloned, one_to_many=one_to_many, commit=commit)
-        return cloned_fks
-
-    def _create_many_to_many(self, cloned, many_to_many, commit=True):
-        m2m_added = self._pre_create_many_to_many(cloned, many_to_many=many_to_many, commit=commit)
-        return m2m_added
-
-    def _create_one_to_one(self, cloned, one_to_one, commit=True):
-        one_to_one = self._pre_create_one_to_one(cloned, one_to_one=one_to_one, commit=commit)
-        return one_to_one
-
-    @conditional_transaction
-    def create_child(
-            self,
-            commit=True,
-            attrs=None,
-            exclude=None,
-            many_to_one=None,
-            one_to_many=None,
-            many_to_many=None,
-            one_to_one=None,
-            transaction=False,
-    ):
+    def make_clone(self, many_to_one=None, one_to_one=None, many_to_many=None, exclude=None, attrs=None, commit=True):
         many_to_one = many_to_one or self.many_to_one
-        one_to_many = one_to_many or self.one_to_many
         many_to_many = many_to_many or self.many_to_many
         one_to_one = one_to_one or self.one_to_one
-        _pre_create_child = getattr(self.instance, '_pre_create_child', self._pre_create_child)
-        cloned = _pre_create_child(self.instance, attrs, exclude=exclude or self.exclude)
-        if commit is True:
-            self._pre_save_validation(cloned)
-            cloned.save()
-            if many_to_one:
-                self._create_many_to_one(cloned, many_to_one=many_to_one)
-            if one_to_many:
-                self._create_one_to_many(cloned, one_to_many=one_to_many)
-            if many_to_many:
-                self._create_many_to_many(cloned, many_to_many=many_to_many)
-            if one_to_one:
-                self._create_one_to_one(cloned, one_to_one=one_to_one)
-        return cloned
+        cloned_instance = self.clone_instance(self.instance, attrs=attrs, exclude=exclude, commit=commit)
+        self.mapping.update({self.instance: cloned_instance})
+        if many_to_one:
+            cloned_m2o = self.clone_many_to_one(many_to_one)
+            self.mapping.update(cloned_m2o)
+        if one_to_one:
+            self.clone_one_to_one(one_to_one)
+        return cloned_instance
