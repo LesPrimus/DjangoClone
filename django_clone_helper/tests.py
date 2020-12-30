@@ -21,7 +21,7 @@ from django_clone_helper.models import (
     Membership,
     BassGuitar, A, B, C, D
 )
-from .utils import Param, ManyToOne, OneToOne
+from .utils import Param
 
 
 @pytest.fixture
@@ -109,12 +109,8 @@ class TestModel:
         check_model_count(Artist, 2)
         assert cloned_artist.name == artist.name
 
-    def test_clone_model_override_attrs(self, artist, patch_clone):
+    def test_clone_model_override_attrs(self, artist):
         attrs = {'name': 'Clone Artist name'}
-        related = {
-            'django_clone_helper.Artist': Param(attrs=attrs)
-        }
-        patch_clone(Artist, related=related)
         cloned_artist = artist.clone.make_clone(attrs=attrs)
         check_model_count(Artist, 2)
         assert cloned_artist.name == attrs.get('name')
@@ -137,7 +133,7 @@ class TestModel:
 @pytest.mark.django_db
 class TestOneToOne:
     def test_clone_model_with_o2o_attr(self, patch_clone, passport):
-        one_to_one = [OneToOne(name='passport', reverse_name='owner')]
+        one_to_one = [Param(name='passport')]
         patch_clone(Artist, one_to_one=one_to_one)
         artist = passport.owner
         check_model_count(Artist, 1)
@@ -152,7 +148,7 @@ class TestOneToOne:
 @pytest.mark.django_db
 class TestManyToOne:
     def test_clone_model_with_m2o_attr(self, patch_clone, album):
-        many_to_one = [ManyToOne(name='album_set', reverse_name='artist')]
+        many_to_one = [Param(name='album_set')]
         patch_clone(Artist, many_to_one=many_to_one)
 
         artist = album.artist
@@ -167,9 +163,8 @@ class TestManyToOne:
 
     def test_clone_model_with_m2o_attr_override(self, patch_clone, album):
         many_to_one = [
-            ManyToOne(
+            Param(
                 name='album_set',
-                reverse_name='artist',
                 attrs={'title': 'Override Title'}
             )
         ]
@@ -206,7 +201,7 @@ class TestManyToOne:
 
     def test_cloning_with_multiple_m2o(self, patch_clone, song):
         many_to_one = [
-            ManyToOne(name='song_set', reverse_name='artist'),
+            Param(name='song_set'),
         ]
         patch_clone(Artist, many_to_one=many_to_one)
 
@@ -231,8 +226,8 @@ class TestManyToOne:
 
     def test_cloning_with_multiple_m2o__update_relations(self, patch_clone, album, song):
         many_to_one = [
-            ManyToOne(name='album_set', reverse_name='artist'),
-            ManyToOne(name='song_set', reverse_name='artist'),
+            Param(name='album_set'),
+            Param(name='song_set'),
         ]
         patch_clone(Artist, many_to_one=many_to_one)
         artist = album.artist

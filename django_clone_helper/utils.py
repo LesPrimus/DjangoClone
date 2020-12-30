@@ -7,7 +7,8 @@ from django.db.models import Model
 
 
 class Param(MutableMapping):
-    def __init__(self, attrs=None, exclude=None):
+    def __init__(self, name, attrs=None, exclude=None):
+        self.name = name
         self.attrs = attrs or {}
         self.exclude = exclude
 
@@ -27,19 +28,19 @@ class Param(MutableMapping):
         return len(self.attrs)
 
 
-class RelatedParam(Param):
-    def __init__(self, name, reverse_name, attrs=None, exclude=None):
-        super().__init__(attrs=attrs, exclude=exclude)
-        self.name = name
-        self.reverse_name = reverse_name
-
-
-class ManyToOne(RelatedParam):
-    pass
-
-
-class OneToOne(RelatedParam):
-    pass
+# class RelatedParam(Param):
+#     def __init__(self, name, reverse_name, attrs=None, exclude=None):
+#         super().__init__(attrs=attrs, exclude=exclude)
+#         self.name = name
+#         self.reverse_name = reverse_name
+#
+#
+# class ManyToOne(RelatedParam):
+#     pass
+#
+#
+# class OneToOne(RelatedParam):
+#     pass
 
 
 ParentLookUp = namedtuple('ParentLookUp', ['name'])
