@@ -1,6 +1,7 @@
 import operator
 from collections import defaultdict, Mapping
 from copy import copy
+from itertools import chain
 
 from django.contrib.admin.utils import NestedObjects
 from django.db.models import QuerySet
@@ -59,6 +60,14 @@ class CloneHandler(metaclass=CloneMeta):
         ]
         return fields
 
+    @staticmethod
+    def get_many_to_many(instance):
+        fields = [
+            f for f in instance._meta.get_fields()
+            if f.many_to_many
+        ]
+        return fields
+
     def clone_instance(self, instance, exclude=None, attrs=None, commit=True):
         exclude = exclude or []
         attrs = attrs or {}
@@ -74,11 +83,20 @@ class CloneHandler(metaclass=CloneMeta):
             cloned.save()
         return cloned
 
+    def clone_many_to_many(self, many_to_many):
+        result = {}
+        for param in many_to_many:
+            cloned = self.mapping[self.instance]
+            m2m = getattr(self.instance, param.name)
+            if m2m.through._meta.auto_created:
+                for relation in m2m.all():
+                    getattr(cloned, param.name).add(relation)
+
     def clone_one_to_one(self, one_to_one):
         result = {}
         for param in one_to_one:
             o2o = getattr(self.instance, param.name)
-            for field in self.get_one_to_one_fields(o2o):
+            for field in chain(self.get_one_to_one_fields(o2o), self.get_many_to_one_fields(o2o)):
                 original_rel = getattr(o2o, field.name)
                 cloned_rel = self.mapping.get(original_rel, None)
                 if cloned_rel is not None:
@@ -92,8 +110,7 @@ class CloneHandler(metaclass=CloneMeta):
         for param in many_to_one:
             related_manager = getattr(self.instance, param.name)
             for m2o in related_manager.all():
-                m2o_fields = self.get_many_to_one_fields(instance=m2o)
-                for field in m2o_fields:
+                for field in chain(self.get_many_to_one_fields(m2o), self.get_one_to_one_fields(m2o)):
                     original_rel = getattr(m2o, field.name)
                     cloned_rel = self.mapping.get(original_rel, None)
                     if cloned_rel is not None:
@@ -110,8 +127,10 @@ class CloneHandler(metaclass=CloneMeta):
         cloned_instance = self.clone_instance(self.instance, attrs=attrs, exclude=exclude, commit=commit)
         self.mapping.update({self.instance: cloned_instance})
         if many_to_one:
-            cloned_m2o = self.clone_many_to_one(many_to_one)
-            self.mapping.update(cloned_m2o)
+            self.clone_many_to_one(many_to_one)
+            # self.mapping.update(cloned_m2o)
         if one_to_one:
             self.clone_one_to_one(one_to_one)
+        if many_to_many:
+            self.clone_many_to_many(many_to_many)
         return cloned_instance

@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+from django.db.models.options import Options
 
 from .helpers import CloneHandler
 
@@ -92,6 +93,7 @@ def patch_clone(monkeypatch):
             attrs = kwargs.get('attrs', {})
             one_to_one = kwargs.get('one_to_one', [])
             many_to_one = kwargs.get('many_to_one', [])
+            many_to_many = kwargs.get('many_to_many', [])
         monkeypatch.setattr(model, 'clone', clone_patch)
     return _patch_factory
 
@@ -267,27 +269,29 @@ class TestManyToOne:
                sorted(list(cloned_song.songpart_set.values_list('name', flat=True)))
 
 
-# @pytest.mark.django_db
-# class TestManyToMany:
-#
-#     def test_cloning_model_with_m2m(self, compilation, patch_clone):
-#         many_to_many = [
-#             ManyToManyParam(name='songs', reverse_name='compilation_set')
-#         ]
-#         patch_clone(Compilation, many_to_many=many_to_many)
-#         check_model_count(Compilation, 1)
-#         check_model_count(Song, 2)
-#         check_model_count(Artist, 1)
-#         check_model_count(Album, 1)
-#
-#         cloned_compilation = compilation.clone.create_child()
-#
-#         assert cloned_compilation.songs.count() == 2
-#         assert compilation.songs.count() == 2
-#
-#         check_model_count(Compilation, 2)
-#         check_model_count(Song, 2)
-#
+@pytest.mark.django_db
+class TestManyToMany:
+
+    def test_cloning_model_with_m2m(self, compilation, patch_clone):
+        many_to_many = [
+            Param(name='songs')
+        ]
+        patch_clone(Compilation, many_to_many=many_to_many)
+        check_model_count(Compilation, 1)
+        check_model_count(Song, 2)
+        check_model_count(Artist, 1)
+        check_model_count(Album, 1)
+
+        cloned_compilation = compilation.clone.make_clone()
+
+        assert cloned_compilation.songs.count() == 2
+        assert compilation.songs.count() == 2
+
+        check_model_count(Compilation, 2)
+        check_model_count(Song, 2)
+        check_model_count(Artist, 1)
+        check_model_count(Album, 1)
+
 #     def test_cloning_m2m_with_through_explicit(self, artist, group, patch_clone):
 #         many_to_one = [
 #             ManyToOneParam(
@@ -334,20 +338,3 @@ class TestManyToOne:
 #         assert cloned_membership.person == cloned_artist
 #         assert cloned_membership.group == artist.membership_set.get().group
 
-
-# @pytest.mark.django_db
-# def test_some(album):
-#     artist = album.artist
-#
-#     cloned_artist = artist.clone.make_clone(attrs={'name': 'John'})
-#
-#     # other process
-#     handler = CloneHandler(instance=artist, mapping={artist: cloned_artist})
-#     handler.clone_many_to_one(many_to_one=[ManyToOne(name='album_set', reverse_name='artist')])
-#
-#     check_model_count(Artist, 2)
-#     check_model_count(Album, 2)
-#
-#     print(cloned_artist.album_set.get())
-#     print(artist.album_set.get())
-#     assert 0
