@@ -12,22 +12,20 @@ Add a clone (class) to a model.
         class clone(CloneHandler):
 
             many_to_one = [
-                ManyToOneParam(
-                    name='album_set', 
-                    reverse_name='artist', 
+                Param(
+                    name='album_set',
                     attrs={'title': 'cloned album title'}
                 ),
 
-                ManyToOneParam(
-                    name='song_set', 
-                    reverse_name='artist', 
+                Param(
+                    name='song_set',
                     attrs={'title': 'cloned song title'}
                 ),
             ]
 
             one_to_one = [
-                OneToOneParam(
-                    name='passport', reverse_name='owner'
+                Param(
+                    name='passport'
                 ),
             ]
 
@@ -36,17 +34,17 @@ Add a clone (class) to a model.
             return self.name
 
 ---
-Call the create_child method to clone the instance and related ManyToOne, ManyToMany, etc..
+Call the make_clone method to clone the instance and related ManyToOne, ManyToMany, etc..
 based on the CloneHandler subclass configurations.
 
     artist = Artist.objects.get()
 
-    artist.clone.make_child()
+    artist.clone.make_clone()
 ---
-or pass ManyToOneParam, OneToOneParam etc. as  arguments to instance.create_child
+or pass Param class instances as  arguments to instance.create_child
 
 ---
-    m2o_param = ManyToOneParam(name='album_set', reverse_name='artist',attrs={'title': 'cloned album title'})
+    m2o_param = Param(name='album_set', attrs={'title': 'cloned album title'})
 
-    artist.clone.make_child(many_to_one=[m2o_param])
+    artist.clone.make_clone(many_to_one=[m2o_param])
 ---
