@@ -35,6 +35,9 @@ class Membership(models.Model):
     date_joined = models.DateField(auto_now=True)
     invite_reason = models.CharField(max_length=64)
 
+    class clone(CloneHandler):
+        pass
+
 
 class Passport(models.Model):
     owner = models.OneToOneField(Artist, primary_key=True, on_delete=models.CASCADE)

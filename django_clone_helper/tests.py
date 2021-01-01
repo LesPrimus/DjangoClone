@@ -1,7 +1,6 @@
 from uuid import uuid4
 
 import pytest
-from django.db.models.options import Options
 
 from .helpers import CloneHandler
 
@@ -292,49 +291,47 @@ class TestManyToMany:
         check_model_count(Artist, 1)
         check_model_count(Album, 1)
 
-#     def test_cloning_m2m_with_through_explicit(self, artist, group, patch_clone):
-#         many_to_one = [
-#             ManyToOneParam(
-#                 name='membership_set',
-#                 reverse_name='person',
-#                 attrs={
-#                     'invite_reason': 'Need a great bassist',
-#                 },
-#             )
-#         ]
-#         patch_clone(Artist, many_to_one=many_to_one)
-#         group.members.add(artist)
-#         check_model_count(Artist, 1)
-#         check_model_count(Group, 1)
-#         check_model_count(Membership, 1)
-#         cloned_artist = artist.clone.create_child()
-#         assert cloned_artist.membership_set.count() == 1
-#         assert artist.membership_set.count() == 1
-#         assert group.members.count() == 2
-#         cloned_membership = cloned_artist.membership_set.get()
-#         assert cloned_membership.invite_reason == 'Need a great bassist'
-#         assert cloned_membership.group == group
-#         assert cloned_membership.date_joined == artist.membership_set.get().date_joined
-#         check_model_count(Artist, 2)
-#         check_model_count(Group, 1)
-#         check_model_count(Membership, 2)
-#
-#     def test_cloning_m2m_through_implicit(self, artist, group, patch_clone):
-#         many_to_many = [
-#             ManyToManyParam(name='group_set', reverse_name='members')
-#         ]
-#         patch_clone(Artist, many_to_many=many_to_many)
-#         artist.group_set.add(group)
-#         check_model_count(Artist, 1)
-#         check_model_count(Group, 1)
-#         check_model_count(Membership, 1)
-#
-#         cloned_artist = artist.clone.create_child()
-#
-#         check_model_count(Artist, 2)
-#         check_model_count(Group, 1)
-#         check_model_count(Membership, 2)
-#         cloned_membership = cloned_artist.membership_set.get()
-#         assert cloned_membership.person == cloned_artist
-#         assert cloned_membership.group == artist.membership_set.get().group
+    def test_cloning_m2m_with_through_explicit(self, artist, group, patch_clone):
+        many_to_one = [
+            Param(
+                name='membership_set',
+                attrs={
+                    'invite_reason': 'Need a great bassist',
+                },
+            )
+        ]
+        patch_clone(Artist, many_to_one=many_to_one)
+        group.members.add(artist)
+        check_model_count(Artist, 1)
+        check_model_count(Group, 1)
+        check_model_count(Membership, 1)
+        cloned_artist = artist.clone.make_clone()
+        assert cloned_artist.membership_set.count() == 1
+        assert artist.membership_set.count() == 1
+        assert group.members.count() == 2
+        cloned_membership = cloned_artist.membership_set.get()
+        assert cloned_membership.invite_reason == 'Need a great bassist'
+        assert cloned_membership.group == group
+        assert cloned_membership.date_joined == artist.membership_set.get().date_joined
+        check_model_count(Artist, 2)
+        check_model_count(Group, 1)
+        check_model_count(Membership, 2)
 
+    def test_cloning_m2m_through_implicit(self, artist, group, patch_clone):
+        many_to_many = [
+            Param(name='group_set')
+        ]
+        patch_clone(Artist, many_to_many=many_to_many)
+        artist.group_set.add(group)
+        check_model_count(Artist, 1)
+        check_model_count(Group, 1)
+        check_model_count(Membership, 1)
+
+        cloned_artist = artist.clone.make_clone()
+
+        check_model_count(Artist, 2)
+        check_model_count(Group, 1)
+        check_model_count(Membership, 2)
+        cloned_membership = cloned_artist.membership_set.get()
+        assert cloned_membership.person == cloned_artist
+        assert cloned_membership.group == artist.membership_set.get().group

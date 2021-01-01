@@ -1,18 +1,7 @@
-import operator
-from collections import defaultdict, Mapping
 from copy import copy
 from itertools import chain
 
-from django.contrib.admin.utils import NestedObjects
-from django.db.models import QuerySet
-
-from django_clone_helper.utils import Cloned, generate_unique
-
-
-def get_model_from_string(model_name):
-    from django.apps import apps
-    Model = apps.get_model(model_name)
-    return Model
+from django_clone_helper.utils import generate_unique
 
 
 class CloneMeta(type):
@@ -84,13 +73,11 @@ class CloneHandler(metaclass=CloneMeta):
         return cloned
 
     def clone_many_to_many(self, many_to_many):
-        result = {}
         for param in many_to_many:
             cloned = self.mapping[self.instance]
             m2m = getattr(self.instance, param.name)
-            if m2m.through._meta.auto_created:
-                for relation in m2m.all():
-                    getattr(cloned, param.name).add(relation)
+            for relation in m2m.all():
+                getattr(cloned, param.name).add(relation)
 
     def clone_one_to_one(self, one_to_one):
         result = {}
@@ -128,7 +115,6 @@ class CloneHandler(metaclass=CloneMeta):
         self.mapping.update({self.instance: cloned_instance})
         if many_to_one:
             self.clone_many_to_one(many_to_one)
-            # self.mapping.update(cloned_m2o)
         if one_to_one:
             self.clone_one_to_one(one_to_one)
         if many_to_many:
