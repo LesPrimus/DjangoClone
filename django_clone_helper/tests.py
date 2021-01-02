@@ -16,7 +16,7 @@ from django_clone_helper.models import (
     Membership,
     BassGuitar, A, B, C, D
 )
-from .utils import Param
+from .utils import Param, LookUp
 
 
 @pytest.fixture
@@ -266,6 +266,21 @@ class TestManyToOne:
         assert sorted(list(song.songpart_set.values_list('name', flat=True))) \
                == \
                sorted(list(cloned_song.songpart_set.values_list('name', flat=True)))
+
+    def test_set_attribute_using_callable_during_cloning(self, album, patch_clone):
+        artist = album.artist
+        many_to_one = [
+            Param(
+                name='album_set',
+                attrs={'title': LookUp('artist.set_album_title')}
+            )
+        ]
+        patch_clone(Artist, many_to_one=many_to_one)
+        check_model_count(Artist, 1), check_model_count(Album, 1)
+        cloned_artist = artist.clone.make_clone()
+        check_model_count(Artist, 2), check_model_count(Album, 2)
+        cloned_album = cloned_artist.album_set.get()
+        assert cloned_album.title == artist.set_album_title()
 
 
 @pytest.mark.django_db

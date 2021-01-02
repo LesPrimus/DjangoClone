@@ -1,7 +1,8 @@
+import operator
 from copy import copy
 from itertools import chain
 
-from django_clone_helper.utils import generate_unique
+from django_clone_helper.utils import generate_unique, LookUp
 
 
 class CloneMeta(type):
@@ -65,7 +66,9 @@ class CloneHandler(metaclass=CloneMeta):
         for k, v in attrs.items():
             if k in exclude:
                 continue
-            setattr(cloned, k, v)
+            elif isinstance(v, LookUp):
+                v = operator.attrgetter(v.name)(instance)
+            setattr(cloned, k, v() if callable(v) else v)
         if commit:
             self._set_unique_constrain(cloned)
             cloned.full_clean()

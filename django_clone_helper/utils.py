@@ -26,7 +26,7 @@ class Param(MutableMapping):
         return len(self.attrs)
 
 
-ParentLookUp = namedtuple('ParentLookUp', ['name'])
+LookUp = namedtuple('LookUp', ['name'])
 Cloned = namedtuple('Cloned', ['name'])
 
 
