@@ -1,8 +1,15 @@
 import operator
 from copy import copy
-from itertools import chain
 
 from django_clone_helper.utils import generate_unique, LookUp
+
+
+def get_candidate_relations_to_update(instance):
+    fields = [
+        f for f in instance._meta.get_fields()
+        if (f.many_to_one or f.one_to_one)
+    ]
+    return fields
 
 
 class CloneMeta(type):
@@ -34,29 +41,14 @@ class CloneHandler(metaclass=CloneMeta):
                 setattr(instance, field.name, generate_unique(instance, field))
         return instance
 
-    @staticmethod
-    def get_many_to_one_fields(instance):
-        fields = [
-            f for f in instance._meta.get_fields()
-            if f.many_to_one
-        ]
-        return fields
-
-    @staticmethod
-    def get_one_to_one_fields(instance):
-        fields = [
-            f for f in instance._meta.get_fields()
-            if f.one_to_one
-        ]
-        return fields
-
-    @staticmethod
-    def get_many_to_many(instance):
-        fields = [
-            f for f in instance._meta.get_fields()
-            if f.many_to_many
-        ]
-        return fields
+    def update_related_from_pool(self, obj):
+        result = {}
+        for field in get_candidate_relations_to_update(instance=obj):
+            original_rel = getattr(obj, field.name)
+            cloned_rel = self.mapping.get(original_rel, None)
+            if cloned_rel is not None:
+                result[field.name] = cloned_rel
+        return result
 
     def clone_instance(self, instance, exclude=None, attrs=None, commit=True):
         exclude = exclude or []
@@ -86,12 +78,9 @@ class CloneHandler(metaclass=CloneMeta):
         result = {}
         for param in one_to_one:
             o2o = getattr(self.instance, param.name)
-            for field in chain(self.get_one_to_one_fields(o2o), self.get_many_to_one_fields(o2o)):
-                original_rel = getattr(o2o, field.name)
-                cloned_rel = self.mapping.get(original_rel, None)
-                if cloned_rel is not None:
-                    param.attrs.update({field.name: cloned_rel})
-            cloned_o2o = o2o.clone.make_clone(attrs=param.attrs, exclude=param.exclude)
+            updated_relations = self.update_related_from_pool(o2o)
+            attrs = {**updated_relations, **param.attrs}
+            cloned_o2o = o2o.clone.make_clone(attrs=attrs, exclude=param.exclude)
             result.update({o2o: cloned_o2o})
         return result
 
@@ -100,12 +89,9 @@ class CloneHandler(metaclass=CloneMeta):
         for param in many_to_one:
             related_manager = getattr(self.instance, param.name)
             for m2o in related_manager.all():
-                for field in chain(self.get_many_to_one_fields(m2o), self.get_one_to_one_fields(m2o)):
-                    original_rel = getattr(m2o, field.name)
-                    cloned_rel = self.mapping.get(original_rel, None)
-                    if cloned_rel is not None:
-                        param.attrs.update({field.name: cloned_rel})
-                cloned_m2o = m2o.clone.make_clone(attrs=param.attrs, exclude=param.exclude)
+                updated_relations = self.update_related_from_pool(m2o)
+                attrs = {**updated_relations, **param.attrs}
+                cloned_m2o = m2o.clone.make_clone(attrs=attrs, exclude=param.exclude)
                 result.update({m2o: cloned_m2o})
                 self.mapping.update(result)
         return result
