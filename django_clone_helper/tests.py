@@ -282,6 +282,27 @@ class TestManyToOne:
         cloned_album = cloned_artist.album_set.get()
         assert cloned_album.title == artist.set_album_title()
 
+    def test_chained_models(self, patch_clone):
+        a = A.objects.create()
+        b = B.objects.create(a=a)
+        c = C.objects.create(b=b)
+        d = D.objects.create(c=c)
+
+        patch_clone(A, many_to_one=[Param('b_set')])
+        patch_clone(B, many_to_one=[Param('c_set')])
+        patch_clone(C, many_to_one=[Param('d_set')])
+
+        check_model_count(A, 1)
+        check_model_count(B, 1)
+        check_model_count(C, 1)
+        check_model_count(D, 1)
+
+        cloned_a = a.clone.make_clone()
+        check_model_count(A, 2)
+        check_model_count(B, 2)
+        check_model_count(C, 2)
+        check_model_count(D, 2)
+
 
 @pytest.mark.django_db
 class TestManyToMany:
