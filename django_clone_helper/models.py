@@ -1,14 +1,28 @@
 from uuid import uuid4
 
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
 from django_clone_helper.helpers import CloneHandler
 
 
+class TaggedItem(models.Model):
+    tag = models.SlugField()
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    class clone(CloneHandler):
+        pass
+
+    def __str__(self):
+        return self.tag
+
+
 class Artist(models.Model):
     name = models.CharField(max_length=100)
+    tags = GenericRelation(TaggedItem)
 
     class clone(CloneHandler):
         pass
@@ -107,16 +121,6 @@ class Instrument(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class TaggedItem(models.Model):
-    tag = models.SlugField()
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-
-    def __str__(self):
-        return self.tag
 
 
 class BassGuitar(Instrument):

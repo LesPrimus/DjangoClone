@@ -15,7 +15,8 @@ from django_clone_helper.models import (
     Group,
     Membership,
     BassGuitar,
-    A, B, C, D
+    A, B, C, D,
+    TaggedItem
 )
 from .utils import Param, LookUp
 
@@ -372,6 +373,18 @@ class TestManyToMany:
         cloned_membership = cloned_artist.membership_set.get()
         assert cloned_membership.person == cloned_artist
         assert cloned_membership.group == artist.membership_set.get().group
+
+    def test_clone_using_generic_relation(self, artist, patch_clone):
+        artist.tags.add(TaggedItem(tag='foo'), TaggedItem(tag='bar'), bulk=False)
+        patch_clone(Artist, many_to_one=[Param('tags')])
+        check_model_count(Artist, 1)
+        check_model_count(TaggedItem, 2)
+
+        cloned_artist = artist.clone.make_clone()
+        check_model_count(Artist, 2)
+        check_model_count(TaggedItem, 4)
+        assert artist.tags.count() == 2
+        assert cloned_artist.tags.count() == 2
 
 
 @pytest.mark.django_db
