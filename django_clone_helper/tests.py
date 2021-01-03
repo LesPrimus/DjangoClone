@@ -14,7 +14,8 @@ from django_clone_helper.models import (
     Passport,
     Group,
     Membership,
-    BassGuitar, A, B, C, D
+    BassGuitar,
+    A, B, C, D
 )
 from .utils import Param, LookUp
 
@@ -371,3 +372,27 @@ class TestManyToMany:
         cloned_membership = cloned_artist.membership_set.get()
         assert cloned_membership.person == cloned_artist
         assert cloned_membership.group == artist.membership_set.get().group
+
+
+@pytest.mark.django_db
+class TestCloneHandler:
+    def test_clone_deferred(self, song, patch_clone):
+        album = song.album
+        artist = song.artist
+
+        cloned_artist = artist.clone.make_clone()
+        check_model_count(Artist, 2)
+        check_model_count(Album, 1)
+        check_model_count(Song, 1)
+
+        handler = CloneHandler(instance=artist, mapping={artist: cloned_artist})
+        patch_clone(Album, many_to_one=[Param('song_set')])
+        handler.clone_many_to_one(many_to_one=[Param('album_set')])
+
+        check_model_count(Artist, 2)
+        check_model_count(Album, 2)
+        check_model_count(Song, 2)
+
+        cloned_album = cloned_artist.album_set.get()
+        cloned_song = cloned_album.song_set.get()
+        assert cloned_song.album == cloned_album
